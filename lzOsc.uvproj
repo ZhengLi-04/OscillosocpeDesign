@@ -369,14 +369,14 @@
               <FilePath>.\STARTUP.A51</FilePath>
             </File>
             <File>
-              <FileName>global.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\global.h</FilePath>
-            </File>
-            <File>
               <FileName>global.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\global.c</FilePath>
+            </File>
+            <File>
+              <FileName>global.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\global.h</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
@@ -412,6 +412,16 @@
               <FileName>key.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\key.h</FilePath>
+            </File>
+            <File>
+              <FileName>mode.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\mode.c</FilePath>
+            </File>
+            <File>
+              <FileName>mode.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\mode.h</FilePath>
             </File>
           </Files>
         </Group>

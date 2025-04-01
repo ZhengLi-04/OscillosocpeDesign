@@ -22,4 +22,16 @@ extern unsigned char sel;
 extern unsigned int clocktime;
 extern unsigned int adcount;
 
+void DelayMs(unsigned int ms);  //延时
+
+// 模式选择
+typedef enum {
+    MODE_IDLE = 0, 
+    MODE_1,        
+    MODE_2,       
+    MODE_3          
+} SystemMode;
+
+extern SystemMode workMode;  
+
 #endif

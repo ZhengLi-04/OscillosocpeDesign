@@ -1,0 +1,45 @@
+C51 COMPILER V9.54   MODE                                                                  04/01/2025 22:20:18 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MODE
+OBJECT MODULE PLACED IN .\Objects\mode.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE mode.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\mode
+                    -.lst) TABS(2) OBJECT(.\Objects\mode.obj)
+
+line level    source
+
+   1          /* mode.c */
+   2          #include <reg51.h>
+   3          
+   4          #include "mode.h"
+   5          
+   6          
+   7          void Mode1_Process(void)
+   8          {
+   9   1          fdisp(1, 1);
+  10   1      }
+  11          
+  12          void Mode2_Process(void)
+  13          {
+  14   1          fdisp(2, 1);
+  15   1      }
+  16          
+  17          
+  18          void Mode3_Process(void)
+  19          {
+  20   1          fdisp(3, 1);
+  21   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     21    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

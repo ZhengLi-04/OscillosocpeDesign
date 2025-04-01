@@ -3,6 +3,7 @@
 ".\Objects\main.obj",
 ".\Objects\init.obj",
 ".\Objects\LED.obj",
-".\Objects\key.obj" 
+".\Objects\key.obj",
+".\Objects\mode.obj" 
 TO ".\Objects\lzOsc" 
 PRINT(".\Listings\lzOsc.m51")

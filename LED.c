@@ -6,11 +6,57 @@
 #include "led.h"
 #include "global.h"
 
+//void dsptask()
+//{
+//    unsigned char i;
+//    unsigned char a, b;
+
+//    switch (sel)
+//    {
+//    case 0:
+//        a = 0x01;
+//        break;
+//    case 1:
+//        a = 0x02;
+//        break;
+//    case 2:
+//        a = 0x04;
+//        break;
+//    default:
+//        a = 0x08;
+//    }
+
+//    for (b = 0x80, i = 0; i < 8; i++)
+//    {
+//        D_SER = (a & b) ? 1 : 0;
+//        D_SRCLK = 0;
+//        D_SRCLK = 1;
+//        b = b >> 1;
+//    }
+
+//    a = dspbuf[sel];
+//    key_num = sel;
+//    sel++;
+//    if (sel >= 4) sel = 0;
+
+//    for (b = 0x80, i = 0; i < 8; i++)
+//    {
+//        D_SER = (a & b) ? 1 : 0;
+//        D_SRCLK = 0;
+//        D_SRCLK = 1;
+//        b = b >> 1;
+//    }
+
+//    D_RCLK = 0;
+//    D_RCLK = 1;
+//}
+
 void dsptask()
 {
     unsigned char i;
     unsigned char a, b;
 
+    // 第一部分：位选信号
     switch (sel)
     {
     case 0:
@@ -22,34 +68,68 @@ void dsptask()
     case 2:
         a = 0x04;
         break;
-    default:
+    case 3:
         a = 0x08;
+        break;
+    case 4:
+        a = 0x10;
+        break;
     }
 
+    // 位移输出位选信号
     for (b = 0x80, i = 0; i < 8; i++)
     {
         D_SER = (a & b) ? 1 : 0;
         D_SRCLK = 0;
         D_SRCLK = 1;
-        b = b >> 1;
+        b >>= 1;
     }
 
-    a = dspbuf[sel];
-    key_num = sel;
-    sel++;
-    if (sel >= 4) sel = 0;
+    // 第二部分：段选信号生成
+    if (sel < 4)
+    {
+        // 正常数码管显示
+        a = dspbuf[sel];
+        key_num = sel;
+    }
+    else
+    {
+        // LED模式控制
+        switch (workMode)
+        {
+        case MODE_1:
+            a = 0xF7;
+            break;
+        case MODE_2:
+            a = 0xFB;
+            break;
+        case MODE_3:
+            a = 0xFD;
+            break;
+        default:
+            a = 0xFF;
+        }
+    }
 
+    // 位移输出段选信号
     for (b = 0x80, i = 0; i < 8; i++)
     {
         D_SER = (a & b) ? 1 : 0;
         D_SRCLK = 0;
         D_SRCLK = 1;
-        b = b >> 1;
+        b >>= 1;
     }
 
+    // 锁存输出
     D_RCLK = 0;
     D_RCLK = 1;
+    D_RCLK = 0;
+
+    // 循环控制（数码管0-3，LED控制4）
+    sel++;
+    if (sel > 4) sel = 0;
 }
+
 
 void fdisp(unsigned char n, unsigned char m)
 {
@@ -83,8 +163,11 @@ void fdisp(unsigned char n, unsigned char m)
     case 8:
         c = 0x01;
         break;
-    default:
+    case 9:
         c = 0x09;
+        break;
+    default:
+        c = 0xef;
     }
     dspbuf[m] = c;
 }
