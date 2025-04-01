@@ -1,4 +1,8 @@
 ".\Objects\STARTUP.obj",
-".\Objects\main.obj" 
+".\Objects\global.obj",
+".\Objects\main.obj",
+".\Objects\init.obj",
+".\Objects\LED.obj",
+".\Objects\key.obj" 
 TO ".\Objects\lzOsc" 
 PRINT(".\Listings\lzOsc.m51")
