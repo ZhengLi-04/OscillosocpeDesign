@@ -18,20 +18,25 @@ void main(void)
     init_special_interrupts();     //设置中断
 
     // 初始化显示----
-    fdisp(10, 0);
-    fdisp(10, 1);
-    fdisp(10, 2);
-    fdisp(10, 3);
+    fdisp(22, 0);
+    fdisp(22, 1);
+    fdisp(22, 2);
+    fdisp(22, 3);
 
+    // 无限循环
     for (;;)
     {
         if (key_sta & 0x01)
         {
             key_num_now = key_num;
-            key_sta &= 0xFE;  // ??????
+            key_sta &= 0xFE;  // 清除状态
+            if (key_num_now == 3)
+            {
+                ResetMode3State();
+            }
         }
 
-        // ??????
+        // 设置工作模式
         switch (key_num_now)
         {
         case 1:

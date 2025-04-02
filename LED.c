@@ -166,6 +166,45 @@ void fdisp(unsigned char n, unsigned char m)
     case 9:
         c = 0x09;
         break;
+    case 10:
+        c = 0x10;
+        break;
+    case 11:
+        c = 0x7c;
+        break;
+    case 12:
+        c = 0x22;
+        break;
+    case 13:
+        c = 0x28;
+        break;
+    case 14:
+        c = 0x4c;
+        break;
+    case 15:
+        c = 0x88;
+        break;
+    case 16:
+        c = 0x80;
+        break;
+    case 17:
+        c = 0x3c;
+        break;
+    case 18:
+        c = 0x00;
+        break;
+    case 19:
+        c = 0x08;
+        break;
+    case 20:  // ???"U"??
+        c = 0x51;  // ????:g???,???
+        break;
+    case 21:  // ???"F"??
+        c = 0x87;  // ??:a+g??
+        break;
+		case 22:  // -
+        c = 0xef;  // -
+        break;
     default:
         c = 0xef;
     }
