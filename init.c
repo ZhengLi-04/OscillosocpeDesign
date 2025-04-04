@@ -45,7 +45,8 @@ void timer_isr() interrupt 1
 {
     EA = 0;
     adcount++;
-
+adc_start();
+	
     if (adcount == 10) // ??5ms ????€??
     {
         adcount = 0;
@@ -56,3 +57,14 @@ void timer_isr() interrupt 1
     EA = 1; // ????€??€????
 }
 
+//---------------------------------------------------------------------------------------
+void updateFeature() interrupt 3    //¶¨Ê±Æ÷1ÖÐ¶Ï´¦Àí
+{
+    EA = 0;
+    clocktime++;
+	  if(workMode == MODE_3){
+    //ampMeasure();
+    //freMeasure();
+		}
+    EA = 1;
+}

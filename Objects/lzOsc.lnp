@@ -4,6 +4,8 @@
 ".\Objects\init.obj",
 ".\Objects\LED.obj",
 ".\Objects\key.obj",
-".\Objects\mode.obj" 
+".\Objects\mode.obj",
+".\Objects\adc.obj",
+".\Objects\feature.obj" 
 TO ".\Objects\lzOsc" 
 PRINT(".\Listings\lzOsc.m51")

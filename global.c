@@ -15,15 +15,4 @@ float vpp = 2.5;
 unsigned char amp = 0;
 unsigned int clocktime = 0, adcount = 0;
 
-void DelayMs(unsigned int ms)
-{
-    unsigned int i, j;
-    for (i = 0; i < ms; i++)
-    {
-        for (j = 0; j < 114; j++)
-        {
-            _nop_();
-        }
-    }
-}
 

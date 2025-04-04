@@ -423,6 +423,26 @@
               <FileType>5</FileType>
               <FilePath>.\mode.h</FilePath>
             </File>
+            <File>
+              <FileName>adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>adc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\adc.h</FilePath>
+            </File>
+            <File>
+              <FileName>feature.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\feature.c</FilePath>
+            </File>
+            <File>
+              <FileName>feature.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\feature.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

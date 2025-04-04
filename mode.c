@@ -44,42 +44,46 @@ void Mode3_Process(void)
 
     switch (mode3State)
     {
-    case MODE3_INIT:  
+    case MODE3_INIT:
         fdisp(22, 0);  // "-"
         fdisp(3, 1);    // "3"
         fdisp(22, 2);   // "-"
         fdisp(22, 3);   // "-"
 
-        if (clocktime - mode3Timer >= 200)   // ?1?(??clocktime?5ms??)
+        if (clocktime - mode3Timer >= 2000)   // ?1?(??clocktime?5ms??)
         {
             mode3State = MODE3_FREQ;
             mode3Timer = clocktime;
+            //UpdateFrequencyDisplay(freq);
         }
         break;
 
     case MODE3_FREQ:   // ????
-        UpdateFrequencyDisplay(freq);
-        if (clocktime - mode3Timer >= 400)   // 2???
+        //UpdateFrequencyDisplay(freq);
+        if (clocktime - mode3Timer >= 5000)   // 2???
         {
             mode3State = MODE3_VOLT;
             mode3Timer = clocktime;
+            UpdateVoltageDisplay(vpp);
         }
         break;
 
     case MODE3_VOLT:   // ????
-        UpdateVoltageDisplay(vpp);
-        if (clocktime - mode3Timer >= 400)
+        //UpdateVoltageDisplay(vpp);
+        if (clocktime - mode3Timer >= 5000)
         {
             mode3State = MODE3_FREQ;
             mode3Timer = clocktime;
+            UpdateFrequencyDisplay(freq);
         }
         break;
     }
 }
 
-void ResetMode3State(void) {
+void ResetMode3State(void)
+{
     mode3State = MODE3_INIT;
-    mode3Timer = clocktime; 
+    mode3Timer = clocktime;
 }
 
 // ????(??:FXXX)
@@ -87,10 +91,12 @@ void UpdateFrequencyDisplay(int freq)
 {
     fdisp(21, 0);  // ??"F"
 
-    freq = (freq > 999) ? 999 : freq;  // ??
+    if (freq > 999) freq = 999;
+	if(freq <= 0) freq = 0;
+   
     fdisp((freq / 100) % 10, 1); // ??
     fdisp((freq / 10) % 10, 2); // ??
-    fdisp((freq / 1) % 10, 3); // ??
+    fdisp(freq % 10, 3); // ??
 }
 
 // ????(??:UXX.X)

@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   MODE                                                                  04/02/2025 12:15:33 PAGE 1   
+C51 COMPILER V9.54   MODE                                                                  04/02/2025 22:10:42 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE MODE
@@ -54,80 +54,86 @@ line level    source
   44   1      
   45   1          switch (mode3State)
   46   1          {
-  47   2          case MODE3_INIT:  
+  47   2          case MODE3_INIT:
   48   2              fdisp(22, 0);  // "-"
   49   2              fdisp(3, 1);    // "3"
   50   2              fdisp(22, 2);   // "-"
   51   2              fdisp(22, 3);   // "-"
   52   2      
-  53   2              if (clocktime - mode3Timer >= 200)   // ?1?(??clocktime?5ms??)
+  53   2              if (clocktime - mode3Timer >= 2000)   // ?1?(??clocktime?5ms??)
   54   2              {
-C51 COMPILER V9.54   MODE                                                                  04/02/2025 12:15:33 PAGE 2   
+C51 COMPILER V9.54   MODE                                                                  04/02/2025 22:10:42 PAGE 2   
 
   55   3                  mode3State = MODE3_FREQ;
   56   3                  mode3Timer = clocktime;
-  57   3              }
-  58   2              break;
-  59   2      
-  60   2          case MODE3_FREQ:   // ????
-  61   2              UpdateFrequencyDisplay(freq);
-  62   2              if (clocktime - mode3Timer >= 400)   // 2???
-  63   2              {
-  64   3                  mode3State = MODE3_VOLT;
-  65   3                  mode3Timer = clocktime;
-  66   3              }
-  67   2              break;
-  68   2      
-  69   2          case MODE3_VOLT:   // ????
-  70   2              UpdateVoltageDisplay(vpp);
-  71   2              if (clocktime - mode3Timer >= 400)
-  72   2              {
-  73   3                  mode3State = MODE3_FREQ;
-  74   3                  mode3Timer = clocktime;
-  75   3              }
-  76   2              break;
-  77   2          }
-  78   1      }
-  79          
-  80          void ResetMode3State(void) {
-  81   1          mode3State = MODE3_INIT;
-  82   1          mode3Timer = clocktime; 
-  83   1      }
-  84          
-  85          // ????(??:FXXX)
-  86          void UpdateFrequencyDisplay(int freq)
-  87          {
-  88   1          fdisp(21, 0);  // ??"F"
-  89   1      
-  90   1          freq = (freq > 999) ? 999 : freq;  // ??
-  91   1          fdisp((freq / 100) % 10, 1); // ??
-  92   1          fdisp((freq / 10) % 10, 2); // ??
-  93   1          fdisp((freq / 1) % 10, 3); // ??
-  94   1      }
-  95          
-  96          // ????(??:UXX.X)
-  97          void UpdateVoltageDisplay(float vpp)
-  98          {
-  99   1          int value = (int)(vpp * 10);
- 100   1      
- 101   1          fdisp(20, 0);  // ???"U"??(???3????)
- 102   1      
- 103   1          fdisp((value / 100) % 10, 1); // ??
- 104   1          fdisp((value / 10) % 10 + 10, 2); // ??
- 105   1          fdisp((value / 1) % 10, 3); // ??
- 106   1      }
+  57   3                  //UpdateFrequencyDisplay(freq);
+  58   3              }
+  59   2              break;
+  60   2      
+  61   2          case MODE3_FREQ:   // ????
+  62   2              //UpdateFrequencyDisplay(freq);
+  63   2              if (clocktime - mode3Timer >= 5000)   // 2???
+  64   2              {
+  65   3                  mode3State = MODE3_VOLT;
+  66   3                  mode3Timer = clocktime;
+  67   3                  UpdateVoltageDisplay(vpp);
+  68   3              }
+  69   2              break;
+  70   2      
+  71   2          case MODE3_VOLT:   // ????
+  72   2              //UpdateVoltageDisplay(vpp);
+  73   2              if (clocktime - mode3Timer >= 5000)
+  74   2              {
+  75   3                  mode3State = MODE3_FREQ;
+  76   3                  mode3Timer = clocktime;
+  77   3                  UpdateFrequencyDisplay(freq);
+  78   3              }
+  79   2              break;
+  80   2          }
+  81   1      }
+  82          
+  83          void ResetMode3State(void)
+  84          {
+  85   1          mode3State = MODE3_INIT;
+  86   1          mode3Timer = clocktime;
+  87   1      }
+  88          
+  89          // ????(??:FXXX)
+  90          void UpdateFrequencyDisplay(int freq)
+  91          {
+  92   1          fdisp(21, 0);  // ??"F"
+  93   1      
+  94   1          if (freq > 999) freq = 999;
+  95   1        if(freq <= 0) freq = 0;
+  96   1         
+  97   1          fdisp((freq / 100) % 10, 1); // ??
+  98   1          fdisp((freq / 10) % 10, 2); // ??
+  99   1          fdisp(freq % 10, 3); // ??
+ 100   1      }
+ 101          
+ 102          // ????(??:UXX.X)
+ 103          void UpdateVoltageDisplay(float vpp)
+ 104          {
+ 105   1          int value = (int)(vpp * 10);
+ 106   1      
+ 107   1          fdisp(20, 0);  // ???"U"??(???3????)
+ 108   1      
+ 109   1          fdisp((value / 100) % 10, 1); // ??
+ 110   1          fdisp((value / 10) % 10 + 10, 2); // ??
+ 111   1          fdisp((value / 1) % 10, 3); // ??
+ 112   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    460    ----
+   CODE SIZE        =    503    ----
+C51 COMPILER V9.54   MODE                                                                  04/02/2025 22:10:42 PAGE 3   
+
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =      5       8
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
-C51 COMPILER V9.54   MODE                                                                  04/02/2025 12:15:33 PAGE 3   
-
 END OF MODULE INFORMATION.
 
 

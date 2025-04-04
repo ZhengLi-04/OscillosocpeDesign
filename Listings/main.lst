@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   MAIN                                                                  04/02/2025 12:15:33 PAGE 1   
+C51 COMPILER V9.54   MAIN                                                                  04/02/2025 21:47:58 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
@@ -22,58 +22,60 @@ line level    source
   12          void main(void)
   13          {
   14   1          unsigned char key_num_now = 0; // 开机默认
-  15   1      
+  15   1      clocktime =0;
   16   1          init_timer0();      //初始化定时器0
   17   1          init_timer1();      //初始化定时器1
   18   1          init_special_interrupts();     //设置中断
-  19   1      
-  20   1          // 初始化显示----
-  21   1          fdisp(22, 0);
-  22   1          fdisp(22, 1);
-  23   1          fdisp(22, 2);
-  24   1          fdisp(22, 3);
-  25   1      
-  26   1          // 无限循环
-  27   1          for (;;)
-  28   1          {
-  29   2              if (key_sta & 0x01)
-  30   2              {
-  31   3                  key_num_now = key_num;
-  32   3                  key_sta &= 0xFE;  // 清除状态
-  33   3                  if (key_num_now == 3)
-  34   3                  {
-  35   4                      ResetMode3State();
-  36   4                  }
-  37   3              }
-  38   2      
-  39   2              // 设置工作模式
-  40   2              switch (key_num_now)
-  41   2              {
-  42   3              case 1:
-  43   3                  workMode = MODE_1;
-  44   3                  Mode1_Process();
-  45   3                  break;
-  46   3              case 2:
-  47   3                  workMode = MODE_2;
-  48   3                  Mode2_Process();
-  49   3                  break;
-  50   3              case 3:
-  51   3                  workMode = MODE_3;
-  52   3                  Mode3_Process();
-  53   3                  break;
-  54   3      
-C51 COMPILER V9.54   MAIN                                                                  04/02/2025 12:15:33 PAGE 2   
+  19   1          adc_init();   
+*** WARNING C206 IN LINE 19 OF main.c: 'adc_init': missing function-prototype
+  20   1        
+  21   1          // 初始化显示----
+  22   1          fdisp(22, 0);
+  23   1          fdisp(22, 1);
+  24   1          fdisp(22, 2);
+  25   1          fdisp(22, 3);
+  26   1      
+  27   1          // 无限循环
+  28   1          for (;;)
+  29   1          {
+  30   2              if (key_sta & 0x01)
+  31   2              {
+  32   3                  key_num_now = key_num;
+  33   3                  key_sta &= 0xFE;  // 清除状态
+  34   3                  if (key_num_now == 3)
+  35   3                  {
+  36   4                      ResetMode3State();
+  37   4                  }
+  38   3              }
+  39   2      
+  40   2              // 设置工作模式
+  41   2              switch (key_num_now)
+  42   2              {
+  43   3              case 1:
+  44   3                  workMode = MODE_1;
+  45   3                  Mode1_Process();
+  46   3                  break;
+  47   3              case 2:
+  48   3                  workMode = MODE_2;
+  49   3                  Mode2_Process();
+  50   3                  break;
+  51   3              case 3:
+  52   3                  workMode = MODE_3;
+  53   3                  Mode3_Process();
+C51 COMPILER V9.54   MAIN                                                                  04/02/2025 21:47:58 PAGE 2   
 
-  55   3              default:
-  56   3                  break;
-  57   3              }
-  58   2          }
-  59   1      
-  60   1      }
+  54   3                  break;
+  55   3      
+  56   3              default:
+  57   3                  break;
+  58   3              }
+  59   2          }
+  60   1      
+  61   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     96    ----
+   CODE SIZE        =    103    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
@@ -83,4 +85,4 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
