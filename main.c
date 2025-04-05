@@ -28,9 +28,14 @@ sfr ADC_CONTR  = 0xBC;
 sfr ADC_RES    = 0xBD;
 sfr ADC_RESL   = 0xBE;
 sfr P1ASF      = 0x9D;
+
+unsigned char updateAmpFlag = 0;
+unsigned char updateFreFlag = 0;
+unsigned char mode1Status = 0;
+//mode1status = 0初始 1循环显示 2波形 3改幅度 4该频率
 unsigned int channalSelect = 0x0000; //DAC通道选择
 unsigned int         p_read = 0x0000, p_write = 0x0000, ad_temp = 0;
-unsigned char        dspbuf[4] = {0x11, 0x11, 0x11, 0x11}, sel = 0;
+unsigned char        dspbuf[4] = {0xef, 0xef, 0xef, 0xef}, sel = 0;
 unsigned char        lcdbuf[4] = {0xF7, 0xFB, 0xFD, 0xFE};
 unsigned int         clocktime = 0, adcount = 0;
 unsigned char        ADC_RESULT = 0;
@@ -44,13 +49,15 @@ unsigned int         squAddress = SQU_BASE_ADDRESS;
 unsigned int         teeAddress = TEE_BASE_ADDRESS;
 unsigned char        key_sta = 0, key_num;
 unsigned char        workMode = 0;
-unsigned char        waveMode = 0;
+unsigned char        waveMode = 1;
 unsigned char        WAVE_VALUE = 0;
 unsigned char        isChange = 0;
-unsigned char        freBuffer = 0;
-unsigned char        ampBuffer = 1;
+unsigned char        freBuffer = 30;
+float        ampBuffer = 1.0;
 unsigned int         freq = 0;
 float                vpp = 0.0;
+unsigned char        value = 0;
+unsigned char        valueBuffer = 0;
 unsigned char        amp = 0;
 unsigned char        ampl = 0;
 unsigned char        amp_up = 128;
@@ -210,7 +217,7 @@ void updateFeature() interrupt 3
 {
     EA = 0;
     clocktime++;
-    if (workMode != 0)
+    if (workMode == 3)
     {
         ampMeasure();
         freMeasure();
@@ -249,7 +256,7 @@ void updateFeature() interrupt 3
     if (workMode == 3)
     {
         daAddress = adAddress;
-        if (adAddress <= 0x0400)
+        if (adAddress <= 0x0800)
         {
             XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
             ad_temp = ADC_RESULT;
@@ -270,37 +277,37 @@ void updateFeature() interrupt 3
     }
     else if (clocktime == 2000)
     {
-        if (initStatus == 0)
-        {
-            dspbuf[0] = ledbuffer[0];
-            dspbuf[1] = ledbuffer[1];
-            dspbuf[2] = ledbuffer[2];
-            dspbuf[3] = ledbuffer[3];
-        }
-        else
-        {
-            fdisp(22, 0);
-            fdisp(workMode, 1);
-            fdisp(22, 2);
-            fdisp(22, 3);
-        }
+//        if (initStatus == 0)
+//        {
+//            dspbuf[0] = ledbuffer[0];
+//            dspbuf[1] = ledbuffer[1];
+//            dspbuf[2] = ledbuffer[2];
+//            dspbuf[3] = ledbuffer[3];
+//        }
+//        else
+//        {
+//            fdisp(22, 0);
+//            fdisp(workMode, 1);
+//            fdisp(22, 2);
+//            fdisp(22, 3);
+//        }
     }
     else if (clocktime == 4000)
     {
-        if (initStatus == 0)
-        {
-            dspbuf[0] = ledbuffer[0];
-            dspbuf[1] = ledbuffer[1];
-            dspbuf[2] = ledbuffer[2] & 0xFE;
-            dspbuf[3] = ledbuffer[3];
-        }
-        else
-        {
-            fdisp(22, 0);
-            fdisp(workMode, 1);
-            fdisp(22, 2);
-            fdisp(22, 3);
-        }
+//        if (initStatus == 0)
+//        {
+//            dspbuf[0] = ledbuffer[0];
+//            dspbuf[1] = ledbuffer[1];
+//            dspbuf[2] = ledbuffer[2] & 0xFE;
+//            dspbuf[3] = ledbuffer[3];
+//        }
+//        else
+//        {
+//            fdisp(22, 0);
+//            fdisp(workMode, 1);
+//            fdisp(22, 2);
+//            fdisp(22, 3);
+//        }
         clocktime = 0;
     }
     EA = 1;
@@ -459,15 +466,29 @@ void fdisp(unsigned char n, unsigned char m)
     case 22:  // -
         c = 0xef;  // -
         break;
+    case 23:  // n
+        c = 0x15;
+        break;
+    case 24:  // t
+        c = 0xc3;
+        break;
+    case 25:  // r
+        c = 0xe7;
+        break;
+    case 26:  // q
+        c = 0x0d;
+        break;
     default:
         c = 0x11;
     }
     ledbuffer[m] = c;
-    if (initStatus == 1)dspbuf[m] = c;
+    // if (initStatus == 1)dspbuf[m] = c;
+    dspbuf[m] = c;
 }
 
 void main(void)
 {
+
     CLK_DIV = CLK_DIV | 0x01;
     init_timer0();
     init_timer1();
@@ -490,6 +511,86 @@ void main(void)
         case 1:
         {
             DAC_VALUE = ADC_RESULT;
+            if (initStatus == 0)
+            {
+                if (mode1Status == 1)
+                {
+                    if (clocktime < 2000)
+                    {
+                        fdisp(21, 0);  // ??"F"
+
+                        if (freBuffer > 999) freBuffer = 999;
+                        if (freBuffer <= 0) freBuffer = 0;
+
+                        fdisp((freBuffer / 100) % 10, 1); // ??
+                        fdisp((freBuffer / 10) % 10, 2); // ??
+                        fdisp(freBuffer % 10, 3); // ??
+                    }
+                    else
+                    {
+                        valueBuffer = (int)(ampBuffer * 10);
+
+                        fdisp(20, 0);  // ???"U"??(???3????)
+
+                        fdisp((valueBuffer / 100) % 10, 1); // ??
+                        fdisp((valueBuffer / 10) % 10 + 10, 2); // ??
+                        fdisp((valueBuffer / 1) % 10, 3); // ??
+                    }
+                }
+                else if (mode1Status == 2)
+                {
+                    if (waveMode == 1)
+                    {
+                        fdisp(22, 0);
+                        fdisp(5, 1);
+                        fdisp(1, 2);
+                        fdisp(23, 3);
+                    }
+                    else if (waveMode == 2)
+                    {
+                        fdisp(22, 0);
+                        fdisp(24, 1);
+                        fdisp(25, 2);
+                        fdisp(1, 3);
+                    }
+                    else if (waveMode == 3)
+                    {
+                        fdisp(22, 0);
+                        fdisp(5, 1);
+                        fdisp(26, 2);
+                        fdisp(20, 3);
+                    }
+                    else if (waveMode == 4)
+                    {
+                        fdisp(22, 0);
+                        fdisp(5, 1);
+                        fdisp(24, 2);
+                        fdisp(22, 3);
+                    }
+                }
+                else if (mode1Status == 3)
+                {
+                    valueBuffer = (int)(ampBuffer * 10);
+
+                    fdisp(20, 0);  // ???"U"??(???3????)
+
+                    fdisp((valueBuffer / 100) % 10, 1); // ??
+                    fdisp((valueBuffer / 10) % 10 + 10, 2); // ??
+                    fdisp((valueBuffer / 1) % 10, 3); // ??
+
+                }
+                else if (mode1Status == 4)
+                {
+                    fdisp(21, 0);  // ??"F"
+
+                    if (freBuffer > 999) freBuffer = 999;
+                    if (freBuffer <= 0) freBuffer = 0;
+
+                    fdisp((freBuffer / 100) % 10, 1); // ??
+                    fdisp((freBuffer / 10) % 10, 2); // ??
+                    fdisp(freBuffer % 10, 3); // ??
+                }
+            }
         }
         break;
         case 2:
@@ -500,6 +601,44 @@ void main(void)
         case 3:
         {
             DAC_VALUE = ADC_RESULT;
+            if (initStatus == 0)
+            {
+                if (clocktime < 2000)
+                {
+                    updateAmpFlag = 1;
+                    if (updateFreFlag == 1)
+                    {
+                        //freMeasure();
+                        updateFreFlag = 0;
+                        fdisp(21, 0);  // ??"F"
+
+                        if (freq > 999) freq = 999;
+                        if (freq <= 0) freq = 0;
+
+                        fdisp((freq / 100) % 10, 1); // ??
+                        fdisp((freq / 10) % 10, 2); // ??
+                        fdisp(freq % 10, 3); // ??
+                    }
+
+                }
+                else
+                {
+                    updateFreFlag = 1;
+                    if (updateAmpFlag == 1)
+                    {
+                        //ampMeasure();
+                        updateAmpFlag = 0;
+                        value = (int)(vpp * 10);
+
+                        fdisp(20, 0);  // ???"U"??(???3????)
+
+                        fdisp((value / 100) % 10, 1); // ??
+                        fdisp((value / 10) % 10 + 10, 2); // ??
+                        fdisp((value / 1) % 10, 3); // ??
+                    }
+
+                }
+            }
         }
         break;
         default:
@@ -510,30 +649,7 @@ void main(void)
             keyWork();
             key_sta = key_sta & 0xfe;
         }
-        if (initStatus == 0)
-        {
-            if (clocktime < 2000)
-            {
-                fdisp(21, 0);  // ??"F"
 
-                if (freq > 999) freq = 999;
-                if (freq <= 0) freq = 0;
-
-                fdisp((freq / 100) % 10, 1); // ??
-                fdisp((freq / 10) % 10, 2); // ??
-                fdisp(freq % 10, 3); // ??
-            }
-            else
-            {
-                int value = (int)(vpp * 10);
-
-                fdisp(20, 0);  // ???"U"??(???3????)
-
-                fdisp((value / 100) % 10, 1); // ??
-                fdisp((value / 10) % 10 + 10, 2); // ??
-                fdisp((value / 1) % 10, 3); // ??
-            }
-        }
     }
 }
 //---------------------------------- main.c???? ----------------------------------
@@ -684,85 +800,133 @@ void keyWork()
                 fdisp(22, 3);
             }
         }
+        if (workMode == 1) mode1Status = 1;
         initStatus = 0;
         break;
     case 4:
         if (workMode == 1)
         {
-            if (isChange == 0)
+            if (mode1Status == 4)
             {
-                isChange = 1;
+                mode1Status = 1;
             }
             else
             {
-                isChange = 0;
-                freBuffer = 0;
-                ampBuffer = 1;
+                mode1Status = mode1Status + 1;
             }
         }
-        delay(20);
+//        if (workMode == 1)
+//        {
+//            if (isChange == 0)
+//            {
+//                isChange = 1;
+//            }
+//            else
+//            {
+//                isChange = 0;
+//                freBuffer = 0;
+//                ampBuffer = 1;
+//            }
+//        }
+        delay(100);
         break;
     case 5:
         if (workMode == 1)
         {
-            if (!isChange)
-            {
+            if (mode1Status == 2)
                 waveMode = 1;
-            }
-            else
-            {
-                if (freBuffer >= 1)
-                {
-                    freBuffer = freBuffer - 1;
-                }
-            }
+            else if (mode1Status == 3 && ampBuffer <= 4)
+                ampBuffer = ampBuffer + 1;
+            else if (mode1Status == 4 && freBuffer <= 990)
+                freBuffer = freBuffer + 10;
         }
-        delay(20);
+//        if (workMode == 1)
+//        {
+//            if (!isChange)
+//            {
+//                waveMode = 1;
+//            }
+//            else
+//            {
+//                if (freBuffer >= 1)
+//                {
+//                    freBuffer = freBuffer - 1;
+//                }
+//            }
+//        }
+        delay(100);
         break;
     case 6:
         if (workMode == 1)
         {
-            if (!isChange)
-            {
+            if (mode1Status == 2)
                 waveMode = 2;
-            }
-            else
-            {
-                freBuffer = freBuffer + 1;
-            }
+            else if (mode1Status == 3 && ampBuffer >= 2)
+                ampBuffer = ampBuffer - 1;
+            else if (mode1Status == 4 && freBuffer >= 20)
+                freBuffer = freBuffer - 10;
         }
-        delay(20);
+//        if (workMode == 1)
+//        {
+//            if (!isChange)
+//            {
+//                waveMode = 2;
+//            }
+//            else
+//            {
+//                freBuffer = freBuffer + 1;
+//            }
+//        }
+        delay(100);
         break;
     case 7:
         if (workMode == 1)
         {
-            if (!isChange)
-            {
+            if (mode1Status == 2)
                 waveMode = 3;
-            }
-            else
-            {
-                if (ampBuffer >= 2)
-                {
-                    ampBuffer = ampBuffer - 1;
-                }
-            }
+            else if (mode1Status == 3 && ampBuffer <= 4.9)
+                ampBuffer = ampBuffer + 0.1;
+            else if (mode1Status == 4 && freBuffer <= 999.8)
+                freBuffer = freBuffer + 1;
         }
-        delay(30);
+//        if (workMode == 1)
+//        {
+//            if (!isChange)
+//            {
+//                waveMode = 3;
+//            }
+//            else
+//            {
+//                if (ampBuffer >= 2)
+//                {
+//                    ampBuffer = ampBuffer - 1;
+//                }
+//            }
+//        }
+        delay(100);
         break;
     case 8:
         if (workMode == 1)
         {
-            if (!isChange)
-            {
+            if (mode1Status == 2)
                 waveMode = 4;
-            }
-            else
-            {
-                ampBuffer = ampBuffer + 1;
-            }
+            else if (mode1Status == 3 && ampBuffer >= 0.2)
+                ampBuffer = ampBuffer - 0.1;
+            else if (mode1Status == 4 && freBuffer >= 2)
+                freBuffer = freBuffer - 1;
         }
-        delay(30);
+//        if (workMode == 1)
+//        {
+//            if (!isChange)
+//            {
+//                waveMode = 4;
+//            }
+//            else
+//            {
+//                ampBuffer = ampBuffer + 1;
+//            }
+//        }
+        delay(100);
         break;
     default:
         break;
@@ -782,7 +946,7 @@ void ampMeasure()
     {
         amp_low = amp;
     }
-    if (adAddress > 0x0400)
+    if (adAddress > 0x0800)
     {
         vpp = (amp_up * 5.0 - amp_low * 5.0) / 128;
         amp_up = amp_low = 128;
@@ -802,7 +966,7 @@ void freMeasure()
         }
         fre_low = fre_up;
     }
-    if (adAddress > 0x0400)
+    if (adAddress > 0x0800)
     {
         freq = floor(2000 / (fre * 1.0 / fre_count));
         fre = 0;
