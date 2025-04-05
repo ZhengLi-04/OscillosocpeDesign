@@ -9,10 +9,10 @@
 #define ADC_INIT 0x83
 #define ADC_START 0x8B
 #define ADC_FLAG 0x10
-#define SIN_BASE_ADDRESS 0x1000
-#define TRI_BASE_ADDRESS 0x1100
-#define SQU_BASE_ADDRESS 0x1200
-#define TEE_BASE_ADDRESS 0x1300
+#define SIN_BASE_ADDRESS 0x1C00
+#define TRI_BASE_ADDRESS 0x1D00
+#define SQU_BASE_ADDRESS 0x1E00
+#define TEE_BASE_ADDRESS 0x1F00
 
 sbit D_SER     = P1 ^ 0;
 sbit D_SRCLK   = P1 ^ 1;
@@ -218,7 +218,7 @@ void updateFeature() interrupt 3
     if (workMode == 1)
     {
         daAddress = adAddress;
-        if (adAddress <= 0x0400)
+        if (adAddress <= 0x1Bf0)
         {
             XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
             ad_temp = ADC_RESULT;
@@ -234,7 +234,7 @@ void updateFeature() interrupt 3
     }
     if (workMode == 2)
     {
-        if (daAddress <= 0x0400)
+        if (daAddress <= 0x1Bf0)
         {
             OUTPUT_VALUE = XBYTE[daAddress] / 2;
             daAddress = daAddress + 1;
@@ -249,7 +249,7 @@ void updateFeature() interrupt 3
     if (workMode == 3)
     {
         daAddress = adAddress;
-        if (adAddress <= 0x0400)
+        if (adAddress <= 0x1Bf0)
         {
             XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
             ad_temp = ADC_RESULT;
@@ -314,7 +314,7 @@ void updateWaveBuffer()
         {
         case 1:
         {
-            if (sinAddress <= 0x10FF)
+            if (sinAddress <= 0x1CFF)
             {
                 if (ampBuffer != 1)
                 {
@@ -336,7 +336,7 @@ void updateWaveBuffer()
         break;
         case 2:
         {
-            if (triAddress + freBuffer <= 0x11F3)
+            if (triAddress + freBuffer <= 0x1DF3)
             {
                 WAVE_VALUE = XBYTE[triAddress + freBuffer] + ampBuffer;
                 triAddress++;
@@ -351,7 +351,7 @@ void updateWaveBuffer()
         break;
         case 3:
         {
-            if (squAddress + freBuffer <= 0x12F3)
+            if (squAddress + freBuffer <= 0x1EF3)
             {
                 WAVE_VALUE = XBYTE[squAddress + freBuffer] + ampBuffer;
                 squAddress++;
@@ -366,7 +366,7 @@ void updateWaveBuffer()
         break;
         case 4:
         {
-            if (teeAddress + freBuffer <= 0x1379)
+            if (teeAddress + freBuffer <= 0x1F79)
             {
                 WAVE_VALUE = XBYTE[teeAddress + freBuffer] + ampBuffer;
                 teeAddress++;
@@ -610,38 +610,38 @@ void waveInit()
     //sin
     i = 0;
     address = SIN_BASE_ADDRESS;
-    for (; address <= 0x10FF; address++, i++)
+    for (; address <= 0x1CFF; address++, i++)
     {
         XBYTE[address] = floor(12 * (sin(3.14 * i / 128) +1)) + 32;
     }
     //triangular
     i = 0;
     address = TRI_BASE_ADDRESS;
-    for (; address <= 0x1179; address++, i++)
+    for (; address <= 0x1D79; address++, i++)
     {
         XBYTE[address] = 20 + i;
     }
     i = 0;
-    address = 0x117A;
-    for (; address <= 0x11F3; address++, i++)
+    address = 0x1D7A;
+    for (; address <= 0x1DF3; address++, i++)
     {
         XBYTE[address] = 141 - i;
     }
     //square
     address = SQU_BASE_ADDRESS;
-    for (; address <= 0x1279; address++)
+    for (; address <= 0x1E79; address++)
     {
         XBYTE[address] = 150;
     }
-    address = 0x127A;
-    for (; address <= 0x12F3; address++)
+    address = 0x1E7A;
+    for (; address <= 0x1EF3; address++)
     {
         XBYTE[address] = 30;
     }
     //teeth
     i = 0;
     address = TEE_BASE_ADDRESS;
-    for (; address <= 0x1379; address++, i++)
+    for (; address <= 0x1F79; address++, i++)
     {
         XBYTE[address] = i + 20;
     }
@@ -782,7 +782,7 @@ void ampMeasure()
     {
         amp_low = amp;
     }
-    if (adAddress > 0x0400)
+    if (adAddress > 0x1Bf0)
     {
         vpp = (amp_up * 5.0 - amp_low * 5.0) / 128;
         amp_up = amp_low = 128;
@@ -802,7 +802,7 @@ void freMeasure()
         }
         fre_low = fre_up;
     }
-    if (adAddress > 0x0400)
+    if (adAddress > 0x1Bf0)
     {
         freq = floor(2000 / (fre * 1.0 / fre_count));
         fre = 0;
