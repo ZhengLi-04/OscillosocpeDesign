@@ -249,7 +249,7 @@ void updateFeature() interrupt 3
     if (workMode == 3)
     {
         daAddress = adAddress;
-        if (adAddress <= 0x1Bf0)
+        if (adAddress <= 0x0400)
         {
             XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
             ad_temp = ADC_RESULT;
@@ -782,7 +782,7 @@ void ampMeasure()
     {
         amp_low = amp;
     }
-    if (adAddress > 0x1Bf0)
+    if (adAddress > 0x0400)
     {
         vpp = (amp_up * 5.0 - amp_low * 5.0) / 128;
         amp_up = amp_low = 128;
@@ -802,7 +802,7 @@ void freMeasure()
         }
         fre_low = fre_up;
     }
-    if (adAddress > 0x1Bf0)
+    if (adAddress > 0x0400)
     {
         freq = floor(2000 / (fre * 1.0 / fre_count));
         fre = 0;
