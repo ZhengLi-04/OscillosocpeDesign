@@ -948,7 +948,7 @@ void ampMeasure()
     }
     if (adAddress > 0x0800)
     {
-        vpp = (amp_up * 5.0 - amp_low * 5.0) / 128;
+        vpp = (amp_up * 5.0 / 1.1 - amp_low * 5.0 / 1.1) / 128;
         amp_up = amp_low = 128;
     }
 }
