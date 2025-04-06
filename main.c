@@ -2,12 +2,14 @@
 #include <absacc.h>
 #include <math.h>
 
-#define ADC_BASE_ADDR 0x0000
-#define DAC_CH2 0x2000
-#define DAC_CH1 0x4000
 #define ADC_INIT 0x83
 #define ADC_START 0x8B
 #define ADC_FLAG 0x10
+#define ADC_BASE_ADDR 0x0000
+
+#define DAC_CH2 0x2000
+#define DAC_CH1 0x4000
+
 #define SIN_BASE_ADDR 0x1C00
 #define TRI_BASE_ADDR 0x1D00
 #define SQU_BASE_ADDR 0x1E00
@@ -20,47 +22,67 @@ sbit KEY1      = P3 ^ 4;
 sbit KEY2      = P3 ^ 5;
 sbit EADC      = 0xAD;
 sbit PADC      = 0xBD;
+
 sfr CLK_DIV    = 0x97;
 sfr ADC_CONTR  = 0xBC;
 sfr ADC_RES    = 0xBD;
 sfr P1ASF      = 0x9D;
 
-unsigned char updateAmpFlag = 0;
-unsigned char updateFreFlag = 0;
-unsigned char mode1Status = 0;
-//mode1status = 0初始 1循环显示 2波形 3改幅度 4该频率
-unsigned int         ad_temp = 0;
-unsigned char        dspbuf[4] = {0xef, 0xef, 0xef, 0xef}, sel = 0;
+/*-----------变量定义-----------*/
+// 按键
+unsigned char  	key_sta = 0, key_num;
+// 显示
+unsigned char  	dspbuf[4] = {0xef, 0xef, 0xef, 0xef}, sel = 0;
+code unsigned char segCode[] =
+{
+    /* 0-9 */  0x11, 0x7d, 0x23, 0x29, 0x4d, 0x89, 0x81, 0x3d, 0x01, 0x09,
+    /* 0-9. */ 0x10, 0x7c, 0x22, 0x28, 0x4c, 0x88, 0x80, 0x3c, 0x00, 0x08,
+    /* U */    0x51,
+    /* F */    0x87,
+    /* - */    0xef,
+    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
+}; // 显示码表
+// 模式控制
+unsigned char		workMode = 0;				// 0:初始 1:模式1 2:模式2 3:模式3
+unsigned char 	mode1Status = 0; 		// 0:初始 1:循环显示 2:改波形 3:改幅度 4:改频率
+unsigned char 	initStatus = 1; 		// 1:初始化状态，不得更新数码管内容
+unsigned char 	updateAmpFlag = 0;	// 0:不可更新幅度 1:可以更新幅度
+unsigned char 	updateFreFlag = 0;	// 0:不可更新频率 1:可以更新频率
+// 地址
+unsigned int    adAddr = ADC_BASE_ADDR;
+unsigned int    daAddr = ADC_BASE_ADDR;
+unsigned int    sinAddr = SIN_BASE_ADDR;
+unsigned int   	triAddr = TRI_BASE_ADDR;
+unsigned int  	squAddr = SQU_BASE_ADDR;
+unsigned int 		stwAddr = STW_BASE_ADDR;
+// 系统及A/D
 unsigned int         clocktime = 0, adcount = 0;
 unsigned char        ADC_RESULT = 0;
 unsigned char        DAC_VALUE = 0;
-unsigned char        OUTPUT_VALUE = 0;
-unsigned int         adAddr = ADC_BASE_ADDR;
-unsigned int         daAddr = ADC_BASE_ADDR;
-unsigned int         sinAddr = SIN_BASE_ADDR;
-unsigned int         triAddr = TRI_BASE_ADDR;
-unsigned int         squAddr = SQU_BASE_ADDR;
-unsigned int         stwAddr = STW_BASE_ADDR;
-unsigned char        key_sta = 0, key_num;
-unsigned char        workMode = 0;
-unsigned char        outputWaveMode = 1;
-unsigned char        outputWaveValue = 0;
-unsigned char        outputFreq = 10;
-float        					outputAmp = 1.0;
-unsigned int        inputFreq = 0;
-float               inputAmp = 0.0;
-unsigned char        value = 0;
-unsigned char        valueBuffer = 0;
-unsigned char        amp = 0;
-unsigned char        amp_last = 0;
-unsigned char        amp_up = 128;
-unsigned char        amp_low = 128;
-int                  fre = 0;
-int                  fre_up = 0;
-int                  fre_low = 0;
-float                fre_count = 0;
-unsigned char initStatus = 1; //1代表为初始化状态，不更新数码管内容。
+// 模式1输出
+unsigned char		outputWaveMode = 1;	// 1:正弦 2:三角 3:方波 4:锯齿
+unsigned char   outputWaveValue = 0;// 输出值
+unsigned char   outputFreq = 10;		// 设定输出频率
+float        		outputAmp = 1.0;		// 设定输出幅值
+// 模式2回放
+unsigned char   mode2OutputValue = 0;
+// 模式3测量
+unsigned int    inputFreq = 0;			// 测定输入频率
+float           inputAmp = 0.0;			// 测定输入幅值
+unsigned char   inputAmp10x = 0;
+unsigned char   outputAmp10x = 0;
+// 临时测量值
+unsigned char   amp = 0;
+unsigned char   amp_last = 0;
+unsigned char   amp_max = 128;
+unsigned char   amp_min = 128;
+int             fre = 0;
+int             fre_up = 0;
+int             fre_low = 0;
+float           fre_count = 0;
+unsigned int         ad_temp = 0;
 
+/*-----------函数声明-----------*/
 // 初始化
 void init_all();
 void init_timer0();
@@ -176,7 +198,7 @@ void updateFeature() interrupt 3
         {
             daAddr = ADC_BASE_ADDR;
         }
-        OUTPUT_VALUE = XBYTE[daAddr] / 2;
+        mode2OutputValue = XBYTE[daAddr] / 2;
         daAddr++;
     }
     if (workMode == 3)
@@ -217,7 +239,7 @@ void adc_start()
     case 2:
     {
         XBYTE[DAC_CH1] = DAC_VALUE;
-        XBYTE[DAC_CH2] = OUTPUT_VALUE;
+        XBYTE[DAC_CH2] = mode2OutputValue;
     }
     break;
     case 3:
@@ -276,13 +298,9 @@ void keyWork()
         if (workMode == 1)
         {
             if (mode1Status == 4)
-            {
                 mode1Status = 1;
-            }
             else
-            {
                 mode1Status = mode1Status + 1;
-            }
         }
         delay(100);
         break;
@@ -340,16 +358,6 @@ void keyWork()
 }
 
 /*----------显示相关函数-----------*/
-code unsigned char segCode[] =
-{
-    /* 0-9 */  0x11, 0x7d, 0x23, 0x29, 0x4d, 0x89, 0x81, 0x3d, 0x01, 0x09,
-    /* 0-9. */ 0x10, 0x7c, 0x22, 0x28, 0x4c, 0x88, 0x80, 0x3c, 0x00, 0x08,
-    /* U */    0x51,
-    /* F */    0x87,
-    /* - */    0xef,
-    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
-};
-
 //根据段码表显示不同值
 void dspNum(unsigned char n, unsigned char m)
 {
@@ -485,69 +493,30 @@ void updateOutputWave()
         {
         case 1:
         {
-            if (sinAddr <= 0x1CFF)
-            {
-                if (outputAmp != 1)
-                {
-                    outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
-                }
-                else
-                {
-                    outputWaveValue = XBYTE[sinAddr];
-                }
-                sinAddr = sinAddr + 1 + outputFreq / 1.6;
-            }
-            else
-            {
-                sinAddr = SIN_BASE_ADDR;
-                outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
-                sinAddr = sinAddr + 1 + outputFreq / 1.6;
-            }
+            if (sinAddr > 0x1CFF) sinAddr = SIN_BASE_ADDR;
+            outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
+            sinAddr = sinAddr + 1 + outputFreq / 1.6;
         }
         break;
         case 2:
         {
-            if (triAddr <= 0x1DF3)
-            {
-                outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
-                triAddr = triAddr + 1 + outputFreq / 1.6;
-            }
-            else
-            {
-                triAddr = TRI_BASE_ADDR;
-                outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
-                triAddr = triAddr + 1 + outputFreq / 1.6;
-            }
+            if (triAddr > 0x1DF3) triAddr = TRI_BASE_ADDR;
+            outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
+            triAddr = triAddr + 1 + outputFreq / 1.6;
         }
         break;
         case 3:
         {
-            if (squAddr <= 0x1EFF)
-            {
-                outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
-                squAddr = squAddr + 1 + outputFreq / 1.6;
-            }
-            else
-            {
-                squAddr = SQU_BASE_ADDR;
-                outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
-                squAddr = squAddr + 1 + outputFreq / 1.6;
-            }
+            if (squAddr > 0x1EFF) squAddr = SQU_BASE_ADDR;
+            outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
+            squAddr = squAddr + 1 + outputFreq / 1.6;
         }
         break;
         case 4:
         {
-            if (stwAddr <= 0x1FFF)
-            {
-                outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
-                stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
-            }
-            else
-            {
-                stwAddr = STW_BASE_ADDR;
-                outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
-                stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
-            }
+            if (stwAddr > 0x1FFF) stwAddr = STW_BASE_ADDR;
+            outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
+            stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
         }
         break;
         default:
@@ -560,18 +529,18 @@ void updateOutputWave()
 void ampMeasure()
 {
     amp = ADC_RESULT;
-    if (amp > amp_up)
+    if (amp > amp_max)
     {
-        amp_up = amp;
+        amp_max = amp;
     }
-    if (amp < amp_low)
+    if (amp < amp_min)
     {
-        amp_low = amp;
+        amp_min = amp;
     }
     if (adAddr > 0x0800)
     {
-        inputAmp = (amp_up * 5.0 / 1.1 - amp_low * 5.0 / 1.1) / 128;
-        amp_up = amp_low = 128;
+        inputAmp = (amp_max - amp_min) * 5.0 / 1.1 / 128;
+        amp_max = amp_min = 128;
     }
 }
 //频率测量函数
@@ -610,7 +579,6 @@ void delay(int delayTime)
         while (x--);
     }
 }
-
 /*----------主函数-----------*/
 void main(void)
 {
@@ -646,12 +614,11 @@ void main(void)
                     }
                     else
                     {
-                        valueBuffer = (int)(outputAmp * 10);
-
+                        outputAmp10x = (int)(outputAmp * 10);
                         dspNum(20, 0);
-                        dspNum((valueBuffer / 100) % 10, 1);
-                        dspNum((valueBuffer / 10) % 10 + 10, 2);
-                        dspNum((valueBuffer / 1) % 10, 3);
+                        dspNum((outputAmp10x / 100) % 10, 1);
+                        dspNum((outputAmp10x / 10) % 10 + 10, 2);
+                        dspNum((outputAmp10x / 1) % 10, 3);
                     }
                 }
                 else if (mode1Status == 2)
@@ -687,13 +654,11 @@ void main(void)
                 }
                 else if (mode1Status == 3)
                 {
-                    valueBuffer = (int)(outputAmp * 10);
-
+                    outputAmp10x = (int)(outputAmp * 10);
                     dspNum(20, 0);
-                    dspNum((valueBuffer / 100) % 10, 1);
-                    dspNum((valueBuffer / 10) % 10 + 10, 2);
-                    dspNum((valueBuffer / 1) % 10, 3);
-
+                    dspNum((outputAmp10x / 100) % 10, 1);
+                    dspNum((outputAmp10x / 10) % 10 + 10, 2);
+                    dspNum((outputAmp10x / 1) % 10, 3);
                 }
                 else if (mode1Status == 4)
                 {
@@ -738,11 +703,11 @@ void main(void)
                     if (updateAmpFlag == 1)
                     {
                         updateAmpFlag = 0;
-                        value = (int)(inputAmp * 10);
+                        inputAmp10x = (int)(inputAmp * 10);
                         dspNum(20, 0);
-                        dspNum((value / 100) % 10, 1);
-                        dspNum((value / 10) % 10 + 10, 2);
-                        dspNum((value / 1) % 10, 3);
+                        dspNum((inputAmp10x / 100) % 10, 1);
+                        dspNum((inputAmp10x / 10) % 10 + 10, 2);
+                        dspNum((inputAmp10x / 1) % 10, 3);
                     }
 
                 }
