@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 1   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
@@ -12,851 +12,780 @@ line level    source
    2          #include<absacc.h>
    3          #include<math.h>
    4          
-   5          //---------------------------------- main.h???? ----------------------------------
-   6          #define ADC_BASE_ADDRESS 0x0000
-   7          #define CH2 0x2000
-   8          #define CH1 0x4000
-   9          #define ADC_INIT 0x83
-  10          #define ADC_START 0x8B
-  11          #define ADC_FLAG 0x10
-  12          #define SIN_BASE_ADDRESS 0x1C00
-  13          #define TRI_BASE_ADDRESS 0x1D00
-  14          #define SQU_BASE_ADDRESS 0x1E00
-  15          #define TEE_BASE_ADDRESS 0x1F00
-  16          
-  17          sbit D_SER     = P1 ^ 0;
-  18          sbit D_SRCLK   = P1 ^ 1;
-  19          sbit D_RCLK    = P1 ^ 2;
-  20          sbit KEY1      = P3 ^ 4;
-  21          sbit KEY2      = P3 ^ 5;
-  22          sbit EADC      = 0xAD;
-  23          sbit PADC      = 0xBD;
-  24          sfr CLK_DIV    = 0x97;
-  25          sbit Y         = P1 ^ 4;
-  26          sbit Z         = P1 ^ 5;
-  27          sfr ADC_CONTR  = 0xBC;
-  28          sfr ADC_RES    = 0xBD;
-  29          sfr ADC_RESL   = 0xBE;
-  30          sfr P1ASF      = 0x9D;
-  31          unsigned int channalSelect = 0x0000; //DAC通道选择
-  32          unsigned int         p_read = 0x0000, p_write = 0x0000, ad_temp = 0;
-  33          unsigned char        dspbuf[4] = {0x11, 0x11, 0x11, 0x11}, sel = 0;
-  34          unsigned char        lcdbuf[4] = {0xF7, 0xFB, 0xFD, 0xFE};
-  35          unsigned int         clocktime = 0, adcount = 0;
-  36          unsigned char        ADC_RESULT = 0;
-  37          unsigned char        DAC_VALUE = 0;
-  38          unsigned char        OUTPUT_VALUE = 0;
-  39          unsigned int         adAddress = ADC_BASE_ADDRESS;
-  40          unsigned int         daAddress = ADC_BASE_ADDRESS;
-  41          unsigned int         sinAddress = SIN_BASE_ADDRESS;
-  42          unsigned int         triAddress = TRI_BASE_ADDRESS;
-  43          unsigned int         squAddress = SQU_BASE_ADDRESS;
-  44          unsigned int         teeAddress = TEE_BASE_ADDRESS;
-  45          unsigned char        key_sta = 0, key_num;
-  46          unsigned char        workMode = 0;
-  47          unsigned char        waveMode = 0;
-  48          unsigned char        WAVE_VALUE = 0;
-  49          unsigned char        isChange = 0;
-  50          unsigned char        freBuffer = 0;
-  51          unsigned char        ampBuffer = 1;
-  52          unsigned int         freq = 0;
-  53          float                vpp = 0.0;
+   5          #define ADC_BASE_ADDR 0x0000
+   6          #define DAC_CH2 0x2000
+   7          #define DAC_CH1 0x4000
+   8          #define ADC_INIT 0x83
+   9          #define ADC_START 0x8B
+  10          #define ADC_FLAG 0x10
+  11          #define SIN_BASE_ADDR 0x1C00
+  12          #define TRI_BASE_ADDR 0x1D00
+  13          #define SQU_BASE_ADDR 0x1E00
+  14          #define STW_BASE_ADDR 0x1F00
+  15          
+  16          sbit D_SER     = P1 ^ 0;
+  17          sbit D_SRCLK   = P1 ^ 1;
+  18          sbit D_RCLK    = P1 ^ 2;
+  19          sbit KEY1      = P3 ^ 4;
+  20          sbit KEY2      = P3 ^ 5;
+  21          sbit EADC      = 0xAD;
+  22          sbit PADC      = 0xBD;
+  23          sfr CLK_DIV    = 0x97;
+  24          sfr ADC_CONTR  = 0xBC;
+  25          sfr ADC_RES    = 0xBD;
+  26          sfr P1ASF      = 0x9D;
+  27          
+  28          unsigned char updateAmpFlag = 0;
+  29          unsigned char updateFreFlag = 0;
+  30          unsigned char mode1Status = 0;
+  31          //mode1status = 0初始 1循环显示 2波形 3改幅度 4该频率
+  32          unsigned int         ad_temp = 0;
+  33          unsigned char        dspbuf[4] = {0xef, 0xef, 0xef, 0xef}, sel = 0;
+  34          unsigned int         clocktime = 0, adcount = 0;
+  35          unsigned char        ADC_RESULT = 0;
+  36          unsigned char        DAC_VALUE = 0;
+  37          unsigned char        OUTPUT_VALUE = 0;
+  38          unsigned int         adAddr = ADC_BASE_ADDR;
+  39          unsigned int         daAddr = ADC_BASE_ADDR;
+  40          unsigned int         sinAddr = SIN_BASE_ADDR;
+  41          unsigned int         triAddr = TRI_BASE_ADDR;
+  42          unsigned int         squAddr = SQU_BASE_ADDR;
+  43          unsigned int         stwAddr = STW_BASE_ADDR;
+  44          unsigned char        key_sta = 0, key_num;
+  45          unsigned char        workMode = 0;
+  46          unsigned char        outputWaveMode = 1;
+  47          unsigned char        outputWaveValue = 0;
+  48          unsigned char        outputFreq = 10;
+  49          float                 outputAmp = 1.0;
+  50          unsigned int        inputFreq = 0;
+  51          float               inputAmp = 0.0;
+  52          unsigned char        value = 0;
+  53          unsigned char        valueBuffer = 0;
   54          unsigned char        amp = 0;
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 2   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 2   
 
-  55          unsigned char        ampl = 0;
+  55          unsigned char        amp_last = 0;
   56          unsigned char        amp_up = 128;
   57          unsigned char        amp_low = 128;
   58          int                  fre = 0;
   59          int                  fre_up = 0;
   60          int                  fre_low = 0;
   61          float                fre_count = 0;
-  62          unsigned char        ledbuffer[4] = {0x11, 0x11, 0x11, 0x11};
-  63          unsigned char tmpA, tmpB, tmpC;
-  64          unsigned char initStatus = 1; //1代表为初始化状态，不更新数码管内容。
-  65          
-  66          void init_timer0();
-  67          void init_special_interrupts();
-  68          void updateWaveBuffer();
-  69          void dsptask();
-  70          //void timer_isr() interrupt 1;
-  71          //void updateFeature() interrupt 3;
-  72          void fdisp(unsigned char n, unsigned char m);
-  73          void main(void);
-  74          void adc_init();
-  75          void adc_start();
-  76          void dac_work(int channalSelect, char value);
-  77          //void adc_work() interrupt 5;
-  78          void delay(int delayTime);
-  79          void waveInit();
-  80          void key_service();
-  81          void keyWork();
-  82          void ampMeasure();
-  83          void freMeasure();
-  84          //---------------------------------- main.h???? ----------------------------------
-  85          
-  86          //---------------------------------- main.c???? ----------------------------------
-  87          void init_timer0()
-  88          {
-  89   1          TMOD &= 0XF0;
-  90   1          TMOD |= 0X02;
-  91   1          TL0 = 0X06;
-  92   1          TH0 = 0X06;
-  93   1          TR0 = 1;
-  94   1      }
-  95          
-  96          void init_timer1()
-  97          {
-  98   1          TMOD &= 0x0F;
-  99   1          TMOD |= 0x20;
- 100   1          TL1 = 0x06;
- 101   1          TH1 = 0x06;
- 102   1          TR1 = 1;
- 103   1      }
- 104          
- 105          void init_special_interrupts()
- 106          {
- 107   1          EA  = 1;
- 108   1          ET0 = 1;
- 109   1          ET1 = 1;
- 110   1          EADC = 1;
- 111   1          PT0 = 1;
- 112   1          PT1 = 0;
- 113   1          PADC = 0;
- 114   1      }
- 115          
- 116          void dsptask()
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 3   
+  62          unsigned char initStatus = 1; //1代表为初始化状态，不更新数码管内容。
+  63          
+  64          void init_timer0();
+  65          void init_interrupts();
+  66          void updateWaveBuffer();
+  67          void dsptask();
+  68          //void timer_isr() interrupt 1;
+  69          //void updateFeature() interrupt 3;
+  70          void fdisp(unsigned char n, unsigned char m);
+  71          void main(void);
+  72          void init_adc();
+  73          void adc_start();
+  74          //void adc_work() interrupt 5;
+  75          void delay(int delayTime);
+  76          void init_outputWave();
+  77          void key_service();
+  78          void keyWork();
+  79          void ampMeasure();
+  80          void freMeasure();
+  81          
+  82          void init_timer0()
+  83          {
+  84   1          TMOD &= 0XF0;
+  85   1          TMOD |= 0X02;
+  86   1          TL0 = 0X06;
+  87   1          TH0 = 0X06;
+  88   1          TR0 = 1;
+  89   1      }
+  90          
+  91          void init_timer1()
+  92          {
+  93   1          TMOD &= 0x0F;
+  94   1          TMOD |= 0x20;
+  95   1          TL1 = 0x06;
+  96   1          TH1 = 0x06;
+  97   1          TR1 = 1;
+  98   1      }
+  99          
+ 100          void init_interrupts()
+ 101          {
+ 102   1          EA  = 1;
+ 103   1          ET0 = 1;
+ 104   1          ET1 = 1;
+ 105   1          EADC = 1;
+ 106   1          PT0 = 1;
+ 107   1          PT1 = 0;
+ 108   1          PADC = 0;
+ 109   1      }
+ 110          
+ 111          void dsptask()
+ 112          {
+ 113   1          unsigned char i;
+ 114   1          unsigned char a, b;
+ 115   1          switch (sel)
+ 116   1          {
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 3   
 
- 117          {
- 118   1          unsigned char i;
- 119   1          unsigned char a, b;
- 120   1          switch (sel)
- 121   1          {
- 122   2          case 0:
- 123   2              a = 0x01;
- 124   2              break;
- 125   2          case 1:
- 126   2              a = 0x02;
- 127   2              break;
- 128   2          case 2:
- 129   2              a = 0x04;
- 130   2              break;
- 131   2          case 3:
- 132   2              a = 0x08;
- 133   2              break;
- 134   2          default:
- 135   2              a = 0x10;
- 136   2              break;
- 137   2          }
- 138   1          for (b = 0x80, i = 0; i < 8; i++)
- 139   1          {
- 140   2              if (a & b)  D_SER = 1;
- 141   2              else     D_SER = 0;
- 142   2              D_SRCLK = 0;
- 143   2              D_SRCLK = 1;
- 144   2              D_SRCLK = 0;
- 145   2              b = b >> 1;
- 146   2              b = b & 0x7f;
- 147   2          }
- 148   1          if (sel <= 3)
- 149   1          {
- 150   2              a = dspbuf[sel];
- 151   2          }
- 152   1          else
- 153   1          {
- 154   2              switch (workMode)
- 155   2              {
- 156   3              case 1:
- 157   3                  a = 0xF7;
- 158   3                  break;
- 159   3              case 2:
- 160   3                  a = 0xFB;
- 161   3                  break;
- 162   3              case 3:
- 163   3                  a = 0xFD;
- 164   3                  break;
- 165   3              default:
- 166   3                  a = 0xFE;
- 167   3                  break;
- 168   3              }
- 169   2          }
- 170   1          if (sel <= 3)
- 171   1              key_num = sel;
- 172   1          sel++;
- 173   1          if (sel > 4) sel = 0;
- 174   1          for (b = 0x80, i = 0; i < 8; i++)
- 175   1          {
- 176   2              if (a & b)  D_SER = 1;
- 177   2              else     D_SER = 0;
- 178   2              D_SRCLK = 0;
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 4   
+ 117   2          case 0:
+ 118   2              a = 0x01;
+ 119   2              break;
+ 120   2          case 1:
+ 121   2              a = 0x02;
+ 122   2              break;
+ 123   2          case 2:
+ 124   2              a = 0x04;
+ 125   2              break;
+ 126   2          case 3:
+ 127   2              a = 0x08;
+ 128   2              break;
+ 129   2          default:
+ 130   2              a = 0x10;
+ 131   2              break;
+ 132   2          }
+ 133   1          for (b = 0x80, i = 0; i < 8; i++)
+ 134   1          {
+ 135   2              if (a & b)  D_SER = 1;
+ 136   2              else     D_SER = 0;
+ 137   2              D_SRCLK = 0;
+ 138   2              D_SRCLK = 1;
+ 139   2              D_SRCLK = 0;
+ 140   2              b = b >> 1;
+ 141   2              b = b & 0x7f;
+ 142   2          }
+ 143   1          if (sel <= 3)
+ 144   1          {
+ 145   2              a = dspbuf[sel];
+ 146   2          }
+ 147   1          else
+ 148   1          {
+ 149   2              switch (workMode)
+ 150   2              {
+ 151   3              case 1:
+ 152   3                  a = 0xF7;
+ 153   3                  break;
+ 154   3              case 2:
+ 155   3                  a = 0xFB;
+ 156   3                  break;
+ 157   3              case 3:
+ 158   3                  a = 0xFD;
+ 159   3                  break;
+ 160   3              default:
+ 161   3                  a = 0xFE;
+ 162   3                  break;
+ 163   3              }
+ 164   2          }
+ 165   1          if (sel <= 3)
+ 166   1              key_num = sel;
+ 167   1          sel++;
+ 168   1          if (sel > 4) sel = 0;
+ 169   1          for (b = 0x80, i = 0; i < 8; i++)
+ 170   1          {
+ 171   2              if (a & b)  D_SER = 1;
+ 172   2              else     D_SER = 0;
+ 173   2              D_SRCLK = 0;
+ 174   2              D_SRCLK = 1;
+ 175   2              D_SRCLK = 0;
+ 176   2              b = b >> 1;
+ 177   2              b = b & 0x7fff;
+ 178   2          }
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 4   
 
- 179   2              D_SRCLK = 1;
- 180   2              D_SRCLK = 0;
- 181   2              b = b >> 1;
- 182   2              b = b & 0x7fff;
- 183   2          }
- 184   1          D_RCLK = 0;
- 185   1          D_RCLK = 1;
- 186   1          D_RCLK = 0;
- 187   1      }
- 188          
- 189          void timer_isr() interrupt 1
- 190          {
- 191   1          EA = 0;
- 192   1          adcount++;
- 193   1          adc_start();
- 194   1          Y = !Y;
- 195   1          if (adcount == 3)
- 196   1          {
- 197   2              updateWaveBuffer();
+ 179   1          D_RCLK = 0;
+ 180   1          D_RCLK = 1;
+ 181   1          D_RCLK = 0;
+ 182   1      }
+ 183          
+ 184          void timer_isr() interrupt 1
+ 185          {
+ 186   1          EA = 0;
+ 187   1          adcount++;
+ 188   1          adc_start();
+ 189   1          if (adcount == 3)
+ 190   1          {
+ 191   2              updateWaveBuffer();
+ 192   2          }
+ 193   1          if (adcount == 5)
+ 194   1          {
+ 195   2              dsptask();
+ 196   2              key_service();
+ 197   2              adcount = 0;
  198   2          }
- 199   1          if (adcount == 5)
- 200   1          {
- 201   2              dsptask();
- 202   2              Z = !Z;
- 203   2              key_service();
- 204   2              adcount = 0;
- 205   2          }
- 206   1          EA = 1;
- 207   1      }
- 208          
- 209          void updateFeature() interrupt 3
- 210          {
- 211   1          EA = 0;
- 212   1          clocktime++;
- 213   1          if (workMode != 0)
- 214   1          {
- 215   2              ampMeasure();
- 216   2              freMeasure();
- 217   2          }
- 218   1          if (workMode == 1)
- 219   1          {
- 220   2              daAddress = adAddress;
- 221   2              if (adAddress <= 0x1Bf0)
- 222   2              {
- 223   3                  XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
- 224   3                  ad_temp = ADC_RESULT;
- 225   3                  adAddress++;
- 226   3              }
- 227   2              else
- 228   2              {
- 229   3                  adAddress = ADC_BASE_ADDRESS;
- 230   3                  XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
- 231   3                  ad_temp = ADC_RESULT;
- 232   3                  adAddress++;
- 233   3              }
- 234   2          }
- 235   1          if (workMode == 2)
- 236   1          {
- 237   2              if (daAddress <= 0x1Bf0)
- 238   2              {
- 239   3                  OUTPUT_VALUE = XBYTE[daAddress] / 2;
- 240   3                  daAddress = daAddress + 1;
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 5   
+ 199   1          EA = 1;
+ 200   1      }
+ 201          
+ 202          void updateFeature() interrupt 3
+ 203          {
+ 204   1          EA = 0;
+ 205   1          clocktime++;
+ 206   1          if (workMode == 3)
+ 207   1          {
+ 208   2              ampMeasure();
+ 209   2              freMeasure();
+ 210   2          }
+ 211   1          if (workMode == 1)
+ 212   1          {
+ 213   2              daAddr = adAddr;
+ 214   2              if (adAddr > 0x1Bf0)
+ 215   2              {
+ 216   3                  adAddr = ADC_BASE_ADDR;
+ 217   3              }
+ 218   2              XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+ 219   2              ad_temp = ADC_RESULT;
+ 220   2              adAddr++;
+ 221   2          }
+ 222   1          if (workMode == 2)
+ 223   1          {
+ 224   2              if (daAddr > 0x1Bf0)
+ 225   2              {
+ 226   3                  daAddr = ADC_BASE_ADDR;
+ 227   3              }
+ 228   2              OUTPUT_VALUE = XBYTE[daAddr] / 2;
+ 229   2              daAddr++;
+ 230   2          }
+ 231   1          if (workMode == 3)
+ 232   1          {
+ 233   2              daAddr = adAddr;
+ 234   2              if (adAddr > 0x0800)
+ 235   2              {
+ 236   3                  adAddr = ADC_BASE_ADDR;
+ 237   3              }
+ 238   2              XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+ 239   2              ad_temp = ADC_RESULT;
+ 240   2              adAddr++;
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 5   
 
- 241   3              }
- 242   2              else
- 243   2              {
- 244   3                  daAddress = ADC_BASE_ADDRESS;
- 245   3                  OUTPUT_VALUE = XBYTE[daAddress] / 2;
- 246   3                  daAddress++;
- 247   3              }
- 248   2          }
- 249   1          if (workMode == 3)
- 250   1          {
- 251   2              daAddress = adAddress;
- 252   2              if (adAddress <= 0x1Bf0)
- 253   2              {
- 254   3                  XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
- 255   3                  ad_temp = ADC_RESULT;
- 256   3                  adAddress++;
- 257   3              }
- 258   2              else
- 259   2              {
- 260   3                  adAddress = ADC_BASE_ADDRESS;
- 261   3                  XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
- 262   3                  ad_temp = ADC_RESULT;
- 263   3                  adAddress++;
- 264   3              }
- 265   2          }
- 266   1      
- 267   1          if (clocktime == 500)
- 268   1          {
- 269   2              //updateValue();
- 270   2          }
- 271   1          else if (clocktime == 2000)
- 272   1          {
- 273   2              if (initStatus == 0)
- 274   2              {
- 275   3                  dspbuf[0] = ledbuffer[0];
- 276   3                  dspbuf[1] = ledbuffer[1];
- 277   3                  dspbuf[2] = ledbuffer[2];
- 278   3                  dspbuf[3] = ledbuffer[3];
- 279   3              }
- 280   2              else
- 281   2              {
- 282   3                  fdisp(22, 0);
- 283   3                  fdisp(workMode, 1);
- 284   3                  fdisp(22, 2);
- 285   3                  fdisp(22, 3);
- 286   3              }
- 287   2          }
- 288   1          else if (clocktime == 4000)
- 289   1          {
- 290   2              if (initStatus == 0)
- 291   2              {
- 292   3                  dspbuf[0] = ledbuffer[0];
- 293   3                  dspbuf[1] = ledbuffer[1];
- 294   3                  dspbuf[2] = ledbuffer[2] & 0xFE;
- 295   3                  dspbuf[3] = ledbuffer[3];
- 296   3              }
- 297   2              else
- 298   2              {
- 299   3                  fdisp(22, 0);
- 300   3                  fdisp(workMode, 1);
- 301   3                  fdisp(22, 2);
- 302   3                  fdisp(22, 3);
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 6   
+ 241   2          }
+ 242   1      
+ 243   1          if (clocktime == 4000)
+ 244   1          {
+ 245   2      
+ 246   2              clocktime = 0;
+ 247   2          }
+ 248   1          EA = 1;
+ 249   1      }
+ 250          
+ 251          void updateWaveBuffer()
+ 252          {
+ 253   1          if (workMode == 1)
+ 254   1          {
+ 255   2              switch (outputWaveMode)
+ 256   2              {
+ 257   3              case 1:
+ 258   3              {
+ 259   4                  if (sinAddr <= 0x1CFF)
+ 260   4                  {
+ 261   5                      if (outputAmp != 1)
+ 262   5                      {
+ 263   6                          outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
+ 264   6                      }
+ 265   5                      else
+ 266   5                      {
+ 267   6                          outputWaveValue = XBYTE[sinAddr];
+ 268   6                      }
+ 269   5                      sinAddr = sinAddr + 1 + outputFreq / 1.6;
+ 270   5                  }
+ 271   4                  else
+ 272   4                  {
+ 273   5                      sinAddr = SIN_BASE_ADDR;
+ 274   5                      outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
+ 275   5                      sinAddr = sinAddr + 1 + outputFreq / 1.6;
+ 276   5                  }
+ 277   4              }
+ 278   3              break;
+ 279   3              case 2:
+ 280   3              {
+ 281   4                  if (triAddr <= 0x1DF3)
+ 282   4                  {
+ 283   5                      outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
+ 284   5                      triAddr = triAddr + 1 + outputFreq / 1.6;
+ 285   5                  }
+ 286   4                  else
+ 287   4                  {
+ 288   5                      triAddr = TRI_BASE_ADDR;
+ 289   5                      outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
+ 290   5                      triAddr = triAddr + 1 + outputFreq / 1.6;
+ 291   5                  }
+ 292   4              }
+ 293   3              break;
+ 294   3              case 3:
+ 295   3              {
+ 296   4                  if (squAddr <= 0x1EFF)
+ 297   4                  {
+ 298   5                      outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
+ 299   5                      squAddr = squAddr + 1 + outputFreq / 1.6;
+ 300   5                  }
+ 301   4                  else
+ 302   4                  {
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 6   
 
- 303   3              }
- 304   2              clocktime = 0;
- 305   2          }
- 306   1          EA = 1;
- 307   1      }
- 308          
- 309          void updateWaveBuffer()
- 310          {
- 311   1          if (workMode == 1)
- 312   1          {
- 313   2              switch (waveMode)
- 314   2              {
- 315   3              case 1:
- 316   3              {
- 317   4                  if (sinAddress <= 0x1CFF)
- 318   4                  {
- 319   5                      if (ampBuffer != 1)
- 320   5                      {
- 321   6                          WAVE_VALUE = XBYTE[sinAddress] * ampBuffer;
- 322   6                      }
- 323   5                      else
- 324   5                      {
- 325   6                          WAVE_VALUE = XBYTE[sinAddress];
- 326   6                      }
- 327   5                      sinAddress = sinAddress + 1 + freBuffer;
- 328   5                  }
- 329   4                  else
- 330   4                  {
- 331   5                      sinAddress = SIN_BASE_ADDRESS;
- 332   5                      WAVE_VALUE = XBYTE[sinAddress] * ampBuffer;
- 333   5                      sinAddress = sinAddress + 1 + freBuffer;
- 334   5                  }
- 335   4              }
- 336   3              break;
- 337   3              case 2:
- 338   3              {
- 339   4                  if (triAddress + freBuffer <= 0x1DF3)
- 340   4                  {
- 341   5                      WAVE_VALUE = XBYTE[triAddress + freBuffer] + ampBuffer;
- 342   5                      triAddress++;
- 343   5                  }
- 344   4                  else
- 345   4                  {
- 346   5                      triAddress = TRI_BASE_ADDRESS;
- 347   5                      WAVE_VALUE = XBYTE[triAddress];
- 348   5                      triAddress++;
- 349   5                  }
- 350   4              }
- 351   3              break;
- 352   3              case 3:
- 353   3              {
- 354   4                  if (squAddress + freBuffer <= 0x1EF3)
- 355   4                  {
- 356   5                      WAVE_VALUE = XBYTE[squAddress + freBuffer] + ampBuffer;
- 357   5                      squAddress++;
- 358   5                  }
- 359   4                  else
- 360   4                  {
- 361   5                      squAddress = SQU_BASE_ADDRESS;
- 362   5                      WAVE_VALUE = XBYTE[squAddress];
- 363   5                      squAddress++;
- 364   5                  }
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 7   
+ 303   5                      squAddr = SQU_BASE_ADDR;
+ 304   5                      outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
+ 305   5                      squAddr = squAddr + 1 + outputFreq / 1.6;
+ 306   5                  }
+ 307   4              }
+ 308   3              break;
+ 309   3              case 4:
+ 310   3              {
+ 311   4                  if (stwAddr <= 0x1FFF)
+ 312   4                  {
+ 313   5                      outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
+ 314   5                      stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
+ 315   5                  }
+ 316   4                  else
+ 317   4                  {
+ 318   5                      stwAddr = STW_BASE_ADDR;
+ 319   5                      outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
+ 320   5                      stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
+ 321   5                  }
+ 322   4              }
+ 323   3              break;
+ 324   3              default:
+ 325   3                  break;
+ 326   3              }
+ 327   2          }
+ 328   1      }
+ 329          
+ 330          code unsigned char segCode[] =
+ 331          {
+ 332              /* 0-9 */  0x11, 0x7d, 0x23, 0x29, 0x4d, 0x89, 0x81, 0x3d, 0x01, 0x09,
+ 333              /* 0-9. */ 0x10, 0x7c, 0x22, 0x28, 0x4c, 0x88, 0x80, 0x3c, 0x00, 0x08,
+ 334              /* U */    0x51,
+ 335              /* F */    0x87,
+ 336              /* - */    0xef,
+ 337              /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
+ 338          };
+ 339          
+ 340          void fdisp(unsigned char n, unsigned char m)
+ 341          {
+ 342   1          dspbuf[m] = (n < sizeof(segCode)) ? segCode[n] : 0x11;
+ 343   1      }
+ 344          
+ 345          void main(void)
+ 346          {
+ 347   1      
+ 348   1          CLK_DIV = CLK_DIV | 0x01;
+ 349   1          init_timer0();
+ 350   1          init_timer1();
+ 351   1          init_interrupts();
+ 352   1          init_adc();
+ 353   1          init_outputWave();
+ 354   1          for (;;)
+ 355   1          {
+ 356   2              switch (workMode)
+ 357   2              {
+ 358   3              case 0:
+ 359   3              {
+ 360   4                  initStatus = 1;
+ 361   4                  fdisp(22, 0);
+ 362   4                  fdisp(22, 1);
+ 363   4                  fdisp(22, 2);
+ 364   4                  fdisp(22, 3);
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 7   
 
  365   4              }
  366   3              break;
- 367   3              case 4:
+ 367   3              case 1:
  368   3              {
- 369   4                  if (teeAddress + freBuffer <= 0x1F79)
- 370   4                  {
- 371   5                      WAVE_VALUE = XBYTE[teeAddress + freBuffer] + ampBuffer;
- 372   5                      teeAddress++;
- 373   5                  }
- 374   4                  else
- 375   4                  {
- 376   5                      teeAddress = TEE_BASE_ADDRESS;
- 377   5                      WAVE_VALUE = XBYTE[teeAddress];
- 378   5                      teeAddress++;
- 379   5                  }
- 380   4              }
- 381   3              break;
- 382   3              default:
- 383   3                  break;
- 384   3              }
- 385   2          }
- 386   1      }
- 387          
- 388          void fdisp(unsigned char n, unsigned char m)
- 389          {
- 390   1          char  c;
- 391   1          switch (n)
- 392   1          {
- 393   2          case 0:
- 394   2              c = 0x11;
- 395   2              break;
- 396   2          case 1:
- 397   2              c = 0x7d;
- 398   2              break;
- 399   2          case 2:
- 400   2              c = 0x23;
- 401   2              break;
- 402   2          case 3:
- 403   2              c = 0x29;
- 404   2              break;
- 405   2          case 4:
- 406   2              c = 0x4d;
- 407   2              break;
- 408   2          case 5:
- 409   2              c = 0x89;
- 410   2              break;
- 411   2          case 6:
- 412   2              c = 0x81;
- 413   2              break;
- 414   2          case 7:
- 415   2              c = 0x3d;
- 416   2              break;
- 417   2          case 8:
- 418   2              c = 0x01;
- 419   2              break;
- 420   2          case 9:
- 421   2              c = 0x09;
- 422   2              break;
- 423   2          case 10:
- 424   2              c = 0x10;
- 425   2              break;
- 426   2          case 11:
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 8   
+ 369   4                  DAC_VALUE = ADC_RESULT;
+ 370   4                  if (initStatus == 0)
+ 371   4                  {
+ 372   5                      if (mode1Status == 1)
+ 373   5                      {
+ 374   6                          if (clocktime < 2000)
+ 375   6                          {
+ 376   7                              fdisp(21, 0);
+ 377   7                              if (outputFreq > 999) outputFreq = 999;
+ 378   7                              if (outputFreq <= 0) outputFreq = 0;
+ 379   7                              fdisp((outputFreq / 100) % 10, 1);
+ 380   7                              fdisp((outputFreq / 10) % 10, 2);
+ 381   7                              fdisp(outputFreq % 10, 3);
+ 382   7                          }
+ 383   6                          else
+ 384   6                          {
+ 385   7                              valueBuffer = (int)(outputAmp * 10);
+ 386   7      
+ 387   7                              fdisp(20, 0);
+ 388   7                              fdisp((valueBuffer / 100) % 10, 1);
+ 389   7                              fdisp((valueBuffer / 10) % 10 + 10, 2);
+ 390   7                              fdisp((valueBuffer / 1) % 10, 3);
+ 391   7                          }
+ 392   6                      }
+ 393   5                      else if (mode1Status == 2)
+ 394   5                      {
+ 395   6                          if (outputWaveMode == 1)
+ 396   6                          {
+ 397   7                              fdisp(22, 0);
+ 398   7                              fdisp(5, 1);
+ 399   7                              fdisp(1, 2);
+ 400   7                              fdisp(23, 3);
+ 401   7                          }
+ 402   6                          else if (outputWaveMode == 2)
+ 403   6                          {
+ 404   7                              fdisp(22, 0);
+ 405   7                              fdisp(24, 1);
+ 406   7                              fdisp(25, 2);
+ 407   7                              fdisp(1, 3);
+ 408   7                          }
+ 409   6                          else if (outputWaveMode == 3)
+ 410   6                          {
+ 411   7                              fdisp(22, 0);
+ 412   7                              fdisp(5, 1);
+ 413   7                              fdisp(26, 2);
+ 414   7                              fdisp(20, 3);
+ 415   7                          }
+ 416   6                          else if (outputWaveMode == 4)
+ 417   6                          {
+ 418   7                              fdisp(22, 0);
+ 419   7                              fdisp(5, 1);
+ 420   7                              fdisp(24, 2);
+ 421   7                              fdisp(22, 3);
+ 422   7                          }
+ 423   6                      }
+ 424   5                      else if (mode1Status == 3)
+ 425   5                      {
+ 426   6                          valueBuffer = (int)(outputAmp * 10);
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 8   
 
- 427   2              c = 0x7c;
- 428   2              break;
- 429   2          case 12:
- 430   2              c = 0x22;
- 431   2              break;
- 432   2          case 13:
- 433   2              c = 0x28;
- 434   2              break;
- 435   2          case 14:
- 436   2              c = 0x4c;
- 437   2              break;
- 438   2          case 15:
- 439   2              c = 0x88;
- 440   2              break;
- 441   2          case 16:
- 442   2              c = 0x80;
- 443   2              break;
- 444   2          case 17:
- 445   2              c = 0x3c;
- 446   2              break;
- 447   2          case 18:
- 448   2              c = 0x00;
- 449   2              break;
- 450   2          case 19:
- 451   2              c = 0x08;
- 452   2              break;
- 453   2          case 20:  // ???"U"??
- 454   2              c = 0x51;  // ????:g???,???
- 455   2              break;
- 456   2          case 21:  // ???"F"??
- 457   2              c = 0x87;  // ??:a+g??
- 458   2              break;
- 459   2          case 22:  // -
- 460   2              c = 0xef;  // -
- 461   2              break;
- 462   2          default:
- 463   2              c = 0x11;
- 464   2          }
- 465   1          ledbuffer[m] = c;
- 466   1          if (initStatus == 1)dspbuf[m] = c;
- 467   1      }
- 468          
- 469          void main(void)
- 470          {
- 471   1          CLK_DIV = CLK_DIV | 0x01;
- 472   1          init_timer0();
- 473   1          init_timer1();
- 474   1          init_special_interrupts();
- 475   1          adc_init();
- 476   1          waveInit();
- 477   1          for (;;)
- 478   1          {
- 479   2              switch (workMode)
- 480   2              {
- 481   3              case 0:
- 482   3              {
- 483   4                  initStatus = 1;
- 484   4                  fdisp(22, 0);
- 485   4                  fdisp(22, 1);
- 486   4                  fdisp(22, 2);
- 487   4                  fdisp(22, 3);
- 488   4              }
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 9   
+ 427   6      
+ 428   6                          fdisp(20, 0);
+ 429   6                          fdisp((valueBuffer / 100) % 10, 1);
+ 430   6                          fdisp((valueBuffer / 10) % 10 + 10, 2);
+ 431   6                          fdisp((valueBuffer / 1) % 10, 3);
+ 432   6      
+ 433   6                      }
+ 434   5                      else if (mode1Status == 4)
+ 435   5                      {
+ 436   6                          fdisp(21, 0);
+ 437   6                          if (outputFreq > 999) outputFreq = 999;
+ 438   6                          if (outputFreq <= 0) outputFreq = 0;
+ 439   6                          fdisp((outputFreq / 100) % 10, 1);
+ 440   6                          fdisp((outputFreq / 10) % 10, 2);
+ 441   6                          fdisp(outputFreq % 10, 3);
+ 442   6                      }
+ 443   5                  }
+ 444   4              }
+ 445   3              break;
+ 446   3              case 2:
+ 447   3              {
+ 448   4                  DAC_VALUE = ADC_RESULT;
+ 449   4              }
+ 450   3              break;
+ 451   3              case 3:
+ 452   3              {
+ 453   4                  DAC_VALUE = ADC_RESULT;
+ 454   4                  if (initStatus == 0)
+ 455   4                  {
+ 456   5                      if (clocktime < 2000)
+ 457   5                      {
+ 458   6                          updateAmpFlag = 1;
+ 459   6                          if (updateFreFlag == 1)
+ 460   6                          {
+ 461   7                              updateFreFlag = 0;
+ 462   7                              fdisp(21, 0);
+ 463   7                              if (inputFreq > 999)inputFreq = 999;
+ 464   7                              if (inputFreq <= 0)inputFreq = 0;
+ 465   7                              fdisp((inputFreq / 100) % 10, 1);
+ 466   7                              fdisp((inputFreq / 10) % 10, 2);
+ 467   7                              fdisp(inputFreq % 10, 3);
+ 468   7                          }
+ 469   6      
+ 470   6                      }
+ 471   5                      else
+ 472   5                      {
+ 473   6                          updateFreFlag = 1;
+ 474   6                          if (updateAmpFlag == 1)
+ 475   6                          {
+ 476   7                              updateAmpFlag = 0;
+ 477   7                              value = (int)(inputAmp * 10);
+ 478   7                              fdisp(20, 0);
+ 479   7                              fdisp((value / 100) % 10, 1);
+ 480   7                              fdisp((value / 10) % 10 + 10, 2);
+ 481   7                              fdisp((value / 1) % 10, 3);
+ 482   7                          }
+ 483   6      
+ 484   6                      }
+ 485   5                  }
+ 486   4              }
+ 487   3              break;
+ 488   3              default:
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 9   
 
- 489   3              break;
- 490   3              case 1:
- 491   3              {
- 492   4                  DAC_VALUE = ADC_RESULT;
- 493   4              }
- 494   3              break;
- 495   3              case 2:
- 496   3              {
- 497   4                  DAC_VALUE = ADC_RESULT;
- 498   4              }
- 499   3              break;
- 500   3              case 3:
- 501   3              {
- 502   4                  DAC_VALUE = ADC_RESULT;
- 503   4              }
- 504   3              break;
- 505   3              default:
- 506   3                  break;
- 507   3              }
- 508   2              if (key_sta & 0x01)
- 509   2              {
- 510   3                  keyWork();
- 511   3                  key_sta = key_sta & 0xfe;
- 512   3              }
- 513   2              if (initStatus == 0)
- 514   2              {
- 515   3                  if (clocktime < 2000)
- 516   3                  {
- 517   4                      fdisp(21, 0);  // ??"F"
- 518   4      
- 519   4                      if (freq > 999) freq = 999;
- 520   4                      if (freq <= 0) freq = 0;
- 521   4      
- 522   4                      fdisp((freq / 100) % 10, 1); // ??
- 523   4                      fdisp((freq / 10) % 10, 2); // ??
- 524   4                      fdisp(freq % 10, 3); // ??
- 525   4                  }
- 526   3                  else
- 527   3                  {
- 528   4                      int value = (int)(vpp * 10);
- 529   4      
- 530   4                      fdisp(20, 0);  // ???"U"??(???3????)
- 531   4      
- 532   4                      fdisp((value / 100) % 10, 1); // ??
- 533   4                      fdisp((value / 10) % 10 + 10, 2); // ??
- 534   4                      fdisp((value / 1) % 10, 3); // ??
- 535   4                  }
- 536   3              }
- 537   2          }
- 538   1      }
- 539          //---------------------------------- main.c???? ----------------------------------
+ 489   3                  break;
+ 490   3              }
+ 491   2              if (key_sta & 0x01)
+ 492   2              {
+ 493   3                  keyWork();
+ 494   3                  key_sta = key_sta & 0xfe;
+ 495   3              }
+ 496   2      
+ 497   2          }
+ 498   1      }
+ 499          
+ 500          void init_adc()
+ 501          {
+ 502   1          P1ASF = 0x08;
+ 503   1          ADC_CONTR = ADC_INIT;
+ 504   1          delay(2);
+ 505   1      }
+ 506          
+ 507          void adc_start()
+ 508          {
+ 509   1          ADC_CONTR = ADC_START;
+ 510   1          switch (workMode)
+ 511   1          {
+ 512   2          case 1:
+ 513   2          {
+ 514   3      
+ 515   3              XBYTE[DAC_CH1] = DAC_VALUE;
+ 516   3      
+ 517   3              XBYTE[DAC_CH2] = outputWaveValue;
+ 518   3          }
+ 519   2          break;
+ 520   2          case 2:
+ 521   2          {
+ 522   3      
+ 523   3              XBYTE[DAC_CH1] = DAC_VALUE;
+ 524   3      
+ 525   3              XBYTE[DAC_CH2] = OUTPUT_VALUE;
+ 526   3          }
+ 527   2          break;
+ 528   2          case 3:
+ 529   2          {
+ 530   3      
+ 531   3              XBYTE[DAC_CH1] = DAC_VALUE;
+ 532   3      
+ 533   3              XBYTE[DAC_CH2] = 0x00;
+ 534   3          }
+ 535   2          break;
+ 536   2          default:
+ 537   2              break;
+ 538   2          }
+ 539   1      }
  540          
- 541          //---------------------------------- adc.c???? ----------------------------------
- 542          void adc_init()
+ 541          
+ 542          void adc_work() interrupt 5
  543          {
- 544   1          P1ASF = 0x08;
- 545   1          ADC_CONTR = ADC_INIT;
- 546   1          delay(2);
- 547   1      }
- 548          
- 549          void adc_start()
- 550          {
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 10  
+ 544   1          ADC_CONTR = ADC_INIT;
+ 545   1          ADC_RESULT = ADC_RES / 2 + 64;
+ 546   1      }
+ 547          
+ 548          void delay(int delayTime)
+ 549          {
+ 550   1          unsigned int x;
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 10  
 
- 551   1          ADC_CONTR = ADC_START;
- 552   1          switch (workMode)
- 553   1          {
- 554   2          case 1:
- 555   2          {
- 556   3              channalSelect = CH1;
- 557   3              dac_work(channalSelect, DAC_VALUE);
- 558   3              channalSelect = CH2;
- 559   3              dac_work(channalSelect, WAVE_VALUE);
- 560   3          }
- 561   2          break;
- 562   2          case 2:
- 563   2          {
- 564   3              channalSelect = CH1;
- 565   3              dac_work(channalSelect, DAC_VALUE);
- 566   3              channalSelect = CH2;
- 567   3              dac_work(channalSelect, OUTPUT_VALUE);
- 568   3          }
- 569   2          break;
- 570   2          case 3:
- 571   2          {
- 572   3              channalSelect = CH1;
- 573   3              dac_work(channalSelect, DAC_VALUE);
- 574   3              channalSelect = CH2;
- 575   3              dac_work(channalSelect, 0x00);
- 576   3          }
- 577   2          break;
- 578   2          default:
- 579   2              break;
- 580   2          }
- 581   1      }
- 582          
- 583          void dac_work(int channalSelect, char value)
- 584          {
- 585   1          XBYTE[channalSelect] = value;
- 586   1      }
- 587          
- 588          void adc_work() interrupt 5
- 589          {
- 590   1          ADC_CONTR = ADC_INIT;
- 591   1          ADC_RESULT = ADC_RES / 2 + 64;
- 592   1      }
- 593          
- 594          void delay(int delayTime)
- 595          {
- 596   1          unsigned int x;
- 597   1          while (delayTime--)
- 598   1          {
- 599   2              x = 1000;
- 600   2              while (x--);
- 601   2          }
- 602   1      }
- 603          //---------------------------------- adc.c???? ----------------------------------
- 604          
- 605          //---------------------------------- workMode1-outputWave.c???? ----------------------------------
- 606          void waveInit()
- 607          {
- 608   1          unsigned int address = 0;
- 609   1          unsigned int i = 0;
- 610   1          //sin
- 611   1          i = 0;
- 612   1          address = SIN_BASE_ADDRESS;
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 11  
+ 551   1          while (delayTime--)
+ 552   1          {
+ 553   2              x = 1000;
+ 554   2              while (x--);
+ 555   2          }
+ 556   1      }
+ 557          
+ 558          void init_outputWave()
+ 559          {
+ 560   1          unsigned int addr = 0;
+ 561   1          unsigned int i = 0;
+ 562   1          //Sin Wave
+ 563   1          i = 0;
+ 564   1          addr = SIN_BASE_ADDR;
+ 565   1          for (; addr <= 0x1CFF; addr++, i++)
+ 566   1          {
+ 567   2              XBYTE[addr] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
+ 568   2          }
+ 569   1          //Triangular Wave
+ 570   1          i = 0;
+ 571   1          addr = TRI_BASE_ADDR;
+ 572   1          for (; addr <= 0x1D7F; addr++, i++)
+ 573   1          {
+ 574   2              XBYTE[addr] = 49 + floor(30 * (i / 128.0));
+ 575   2          }
+ 576   1          i = 0;
+ 577   1          addr = 0x1D80;
+ 578   1          for (; addr <= 0x1DFF; addr++, i++)
+ 579   1          {
+ 580   2              XBYTE[addr] = 79 - floor(30 * (i / 128.0));
+ 581   2          }
+ 582   1          //Square Wave
+ 583   1          addr = SQU_BASE_ADDR;
+ 584   1          for (; addr <= 0x1E7F; addr++)
+ 585   1          {
+ 586   2              XBYTE[addr] = 64 + 15;
+ 587   2          }
+ 588   1          addr = 0x1E80;
+ 589   1          for (; addr <= 0x1EFF; addr++)
+ 590   1          {
+ 591   2              XBYTE[addr] = 64 - 15;
+ 592   2          }
+ 593   1          //Sawtooth Wave
+ 594   1          i = 0;
+ 595   1          addr = STW_BASE_ADDR;
+ 596   1          for (; addr <= 0x1FFF; addr++, i++)
+ 597   1          {
+ 598   2              XBYTE[addr] = 64 - 15 + floor(30 * i / 256);
+ 599   2          }
+ 600   1      }
+ 601          
+ 602          void key_service()
+ 603          {
+ 604   1          if (key_sta & 0x01) return;
+ 605   1          if (KEY2)
+ 606   1          {
+ 607   2              key_num = key_num + 1;
+ 608   2              key_sta = key_sta | 0x01;
+ 609   2          }
+ 610   1          else if (KEY1)
+ 611   1          {
+ 612   2              key_num = key_num + 5;
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 11  
 
- 613   1          for (; address <= 0x1CFF; address++, i++)
- 614   1          {
- 615   2              XBYTE[address] = floor(12 * (sin(3.14 * i / 128) +1)) + 32;
- 616   2          }
- 617   1          //triangular
- 618   1          i = 0;
- 619   1          address = TRI_BASE_ADDRESS;
- 620   1          for (; address <= 0x1D79; address++, i++)
+ 613   2              key_sta = key_sta | 0x01;
+ 614   2          }
+ 615   1      }
+ 616          
+ 617          void keyWork()
+ 618          {
+ 619   1          unsigned int i, j;
+ 620   1          switch (key_num)
  621   1          {
- 622   2              XBYTE[address] = 20 + i;
- 623   2          }
- 624   1          i = 0;
- 625   1          address = 0x1D7A;
- 626   1          for (; address <= 0x1DF3; address++, i++)
- 627   1          {
- 628   2              XBYTE[address] = 141 - i;
- 629   2          }
- 630   1          //square
- 631   1          address = SQU_BASE_ADDRESS;
- 632   1          for (; address <= 0x1E79; address++)
- 633   1          {
- 634   2              XBYTE[address] = 150;
- 635   2          }
- 636   1          address = 0x1E7A;
- 637   1          for (; address <= 0x1EF3; address++)
- 638   1          {
- 639   2              XBYTE[address] = 30;
- 640   2          }
- 641   1          //teeth
- 642   1          i = 0;
- 643   1          address = TEE_BASE_ADDRESS;
- 644   1          for (; address <= 0x1F79; address++, i++)
- 645   1          {
- 646   2              XBYTE[address] = i + 20;
- 647   2          }
- 648   1      }
- 649          //---------------------------------- workMode1-outputWave.c???? ----------------------------------
- 650          
- 651          //---------------------------------- key.c???? ----------------------------------
- 652          void key_service()
- 653          {
- 654   1          if (key_sta & 0x01) return;
- 655   1          if (KEY2)
- 656   1          {
- 657   2              key_num = key_num + 1;
- 658   2              key_sta = key_sta | 0x01;
- 659   2          }
- 660   1          else if (KEY1)
- 661   1          {
- 662   2              key_num = key_num + 5;
- 663   2              key_sta = key_sta | 0x01;
- 664   2          }
- 665   1      }
- 666          
- 667          void keyWork()
- 668          {
- 669   1          unsigned int i, j;
- 670   1          switch (key_num)
- 671   1          {
- 672   2          case 1:
- 673   2          case 2:
- 674   2          case 3:
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 12  
+ 622   2          case 1:
+ 623   2          case 2:
+ 624   2          case 3:
+ 625   2              workMode = key_num;
+ 626   2              initStatus = 1;
+ 627   2              for (i = 0; i < 1000; i++)
+ 628   2              {
+ 629   3                  for (j = 0; j < 15; j++)
+ 630   3                  {
+ 631   4                      fdisp(22, 0);
+ 632   4                      fdisp(workMode, 1);
+ 633   4                      fdisp(22, 2);
+ 634   4                      fdisp(22, 3);
+ 635   4                  }
+ 636   3              }
+ 637   2              if (workMode == 1) mode1Status = 1;
+ 638   2              initStatus = 0;
+ 639   2              break;
+ 640   2          case 4:
+ 641   2              if (workMode == 1)
+ 642   2              {
+ 643   3                  if (mode1Status == 4)
+ 644   3                  {
+ 645   4                      mode1Status = 1;
+ 646   4                  }
+ 647   3                  else
+ 648   3                  {
+ 649   4                      mode1Status = mode1Status + 1;
+ 650   4                  }
+ 651   3              }
+ 652   2              delay(100);
+ 653   2              break;
+ 654   2          case 5:
+ 655   2              if (workMode == 1)
+ 656   2              {
+ 657   3                  if (mode1Status == 2)
+ 658   3                      outputWaveMode = 1;
+ 659   3                  else if (mode1Status == 3 && outputAmp <= 4)
+ 660   3                      outputAmp = outputAmp + 1;
+ 661   3                  else if (mode1Status == 4 && outputFreq <= 990)
+ 662   3                      outputFreq = outputFreq + 10;
+ 663   3              }
+ 664   2              delay(100);
+ 665   2              break;
+ 666   2          case 6:
+ 667   2              if (workMode == 1)
+ 668   2              {
+ 669   3                  if (mode1Status == 2)
+ 670   3                      outputWaveMode = 2;
+ 671   3                  else if (mode1Status == 3 && outputAmp >= 2)
+ 672   3                      outputAmp = outputAmp - 1;
+ 673   3                  else if (mode1Status == 4 && outputFreq >= 20)
+ 674   3                      outputFreq = outputFreq - 10;
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 12  
 
- 675   2              workMode = key_num;
- 676   2              initStatus = 1;
- 677   2              for (i = 0; i < 1000; i++)
- 678   2              {
- 679   3                  for (j = 0; j < 15; j++)
- 680   3                  {
- 681   4                      fdisp(22, 0);
- 682   4                      fdisp(workMode, 1);
- 683   4                      fdisp(22, 2);
- 684   4                      fdisp(22, 3);
- 685   4                  }
- 686   3              }
- 687   2              initStatus = 0;
- 688   2              break;
- 689   2          case 4:
- 690   2              if (workMode == 1)
- 691   2              {
- 692   3                  if (isChange == 0)
- 693   3                  {
- 694   4                      isChange = 1;
- 695   4                  }
- 696   3                  else
- 697   3                  {
- 698   4                      isChange = 0;
- 699   4                      freBuffer = 0;
- 700   4                      ampBuffer = 1;
- 701   4                  }
- 702   3              }
- 703   2              delay(20);
- 704   2              break;
- 705   2          case 5:
- 706   2              if (workMode == 1)
- 707   2              {
- 708   3                  if (!isChange)
- 709   3                  {
- 710   4                      waveMode = 1;
- 711   4                  }
- 712   3                  else
- 713   3                  {
- 714   4                      if (freBuffer >= 1)
- 715   4                      {
- 716   5                          freBuffer = freBuffer - 1;
- 717   5                      }
- 718   4                  }
- 719   3              }
- 720   2              delay(20);
- 721   2              break;
- 722   2          case 6:
- 723   2              if (workMode == 1)
- 724   2              {
- 725   3                  if (!isChange)
- 726   3                  {
- 727   4                      waveMode = 2;
- 728   4                  }
- 729   3                  else
- 730   3                  {
- 731   4                      freBuffer = freBuffer + 1;
- 732   4                  }
- 733   3              }
- 734   2              delay(20);
- 735   2              break;
- 736   2          case 7:
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 13  
+ 675   3              }
+ 676   2              delay(100);
+ 677   2              break;
+ 678   2          case 7:
+ 679   2              if (workMode == 1)
+ 680   2              {
+ 681   3                  if (mode1Status == 2)
+ 682   3                      outputWaveMode = 3;
+ 683   3                  else if (mode1Status == 3 && outputAmp <= 4.9)
+ 684   3                      outputAmp = outputAmp + 0.1;
+ 685   3                  else if (mode1Status == 4 && outputFreq <= 999.8)
+ 686   3                      outputFreq = outputFreq + 1;
+ 687   3              }
+ 688   2              delay(100);
+ 689   2              break;
+ 690   2          case 8:
+ 691   2              if (workMode == 1)
+ 692   2              {
+ 693   3                  if (mode1Status == 2)
+ 694   3                      outputWaveMode = 4;
+ 695   3                  else if (mode1Status == 3 && outputAmp >= 0.2)
+ 696   3                      outputAmp = outputAmp - 0.1;
+ 697   3                  else if (mode1Status == 4 && outputFreq >= 2)
+ 698   3                      outputFreq = outputFreq - 1;
+ 699   3              }
+ 700   2              delay(100);
+ 701   2              break;
+ 702   2          default:
+ 703   2              break;
+ 704   2          }
+ 705   1      }
+ 706          void ampMeasure()
+ 707          {
+ 708   1          amp = ADC_RESULT;
+ 709   1          if (amp > amp_up)
+ 710   1          {
+ 711   2              amp_up = amp;
+ 712   2          }
+ 713   1          if (amp < amp_low)
+ 714   1          {
+ 715   2              amp_low = amp;
+ 716   2          }
+ 717   1          if (adAddr > 0x0800)
+ 718   1          {
+ 719   2              inputAmp = (amp_up * 5.0 / 1.1 - amp_low * 5.0 / 1.1) / 128;
+ 720   2              amp_up = amp_low = 128;
+ 721   2          }
+ 722   1      }
+ 723          
+ 724          void freMeasure()
+ 725          {
+ 726   1          amp = ADC_RESULT;
+ 727   1          if (amp > 128 && amp_last <= 128)
+ 728   1          {
+ 729   2              fre_up = adAddr;
+ 730   2              if (fre_low != 0)
+ 731   2              {
+ 732   3                  fre = fre + fabs(fre_low - fre_up);
+ 733   3                  fre_count++;
+ 734   3              }
+ 735   2              fre_low = fre_up;
+ 736   2          }
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 19:06:47 PAGE 13  
 
- 737   2              if (workMode == 1)
- 738   2              {
- 739   3                  if (!isChange)
- 740   3                  {
- 741   4                      waveMode = 3;
- 742   4                  }
- 743   3                  else
- 744   3                  {
- 745   4                      if (ampBuffer >= 2)
- 746   4                      {
- 747   5                          ampBuffer = ampBuffer - 1;
- 748   5                      }
- 749   4                  }
- 750   3              }
- 751   2              delay(30);
- 752   2              break;
- 753   2          case 8:
- 754   2              if (workMode == 1)
- 755   2              {
- 756   3                  if (!isChange)
- 757   3                  {
- 758   4                      waveMode = 4;
- 759   4                  }
- 760   3                  else
- 761   3                  {
- 762   4                      ampBuffer = ampBuffer + 1;
- 763   4                  }
- 764   3              }
- 765   2              delay(30);
- 766   2              break;
- 767   2          default:
- 768   2              break;
- 769   2          }
- 770   1      }
- 771          //---------------------------------- key.c???? ----------------------------------
- 772          
- 773          //---------------------------------- featureExtract.c???? ----------------------------------
- 774          void ampMeasure()
- 775          {
- 776   1          amp = ADC_RESULT;
- 777   1          if (amp > amp_up)
- 778   1          {
- 779   2              amp_up = amp;
- 780   2          }
- 781   1          if (amp < amp_low)
- 782   1          {
- 783   2              amp_low = amp;
- 784   2          }
- 785   1          if (adAddress > 0x1Bf0)
- 786   1          {
- 787   2              vpp = (amp_up * 5.0 - amp_low * 5.0) / 128;
- 788   2              amp_up = amp_low = 128;
- 789   2          }
- 790   1      }
- 791          
- 792          void freMeasure()
- 793          {
- 794   1          amp = ADC_RESULT;
- 795   1          if (amp > 128 && ampl <= 128)
- 796   1          {
- 797   2              fre_up = adAddress;
- 798   2              if (fre_low != 0)
-C51 COMPILER V9.54   MAIN                                                                  04/05/2025 15:29:30 PAGE 14  
-
- 799   2              {
- 800   3                  fre = fre + fabs(fre_low - fre_up);
- 801   3                  fre_count++;
- 802   3              }
- 803   2              fre_low = fre_up;
- 804   2          }
- 805   1          if (adAddress > 0x1Bf0)
- 806   1          {
- 807   2              freq = floor(2000 / (fre * 1.0 / fre_count));
- 808   2              fre = 0;
- 809   2              fre_up = fre_low = 0;
- 810   2              fre_count = 0;
- 811   2              amp = ampl = 129;
- 812   2          }
- 813   1          ampl = amp;
- 814   1      }
- 815          //---------------------------------- featureExtract.c???? ----------------------------------
+ 737   1          if (adAddr > 0x0800)
+ 738   1          {
+ 739   2              inputFreq = floor(2000 / (fre * 1.0 / fre_count));
+ 740   2              fre = 0;
+ 741   2              fre_up = fre_low = 0;
+ 742   2              fre_count = 0;
+ 743   2              amp = amp_last = 129;
+ 744   2          }
+ 745   1          amp_last = amp;
+ 746   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   2611    ----
-   CONSTANT SIZE    =   ----    ----
+   CODE SIZE        =   3281    ----
+   CONSTANT SIZE    =     27    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     72       8
+   DATA SIZE        =     62       6
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

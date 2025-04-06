@@ -364,84 +364,9 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>STARTUP.A51</FileName>
-              <FileType>2</FileType>
-              <FilePath>.\STARTUP.A51</FilePath>
-            </File>
-            <File>
-              <FileName>global.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\global.c</FilePath>
-            </File>
-            <File>
-              <FileName>global.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\global.h</FilePath>
-            </File>
-            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>init.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\init.c</FilePath>
-            </File>
-            <File>
-              <FileName>init.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\init.h</FilePath>
-            </File>
-            <File>
-              <FileName>LED.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\LED.c</FilePath>
-            </File>
-            <File>
-              <FileName>LED.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\LED.h</FilePath>
-            </File>
-            <File>
-              <FileName>key.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\key.c</FilePath>
-            </File>
-            <File>
-              <FileName>key.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\key.h</FilePath>
-            </File>
-            <File>
-              <FileName>mode.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\mode.c</FilePath>
-            </File>
-            <File>
-              <FileName>mode.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\mode.h</FilePath>
-            </File>
-            <File>
-              <FileName>adc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\adc.c</FilePath>
-            </File>
-            <File>
-              <FileName>adc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\adc.h</FilePath>
-            </File>
-            <File>
-              <FileName>feature.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\feature.c</FilePath>
-            </File>
-            <File>
-              <FileName>feature.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\feature.h</FilePath>
             </File>
           </Files>
         </Group>

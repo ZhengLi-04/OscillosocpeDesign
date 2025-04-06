@@ -2,16 +2,16 @@
 #include<absacc.h>
 #include<math.h>
 
-#define ADC_BASE_ADDRESS 0x0000
-#define CH2 0x2000
-#define CH1 0x4000
+#define ADC_BASE_ADDR 0x0000
+#define DAC_CH2 0x2000
+#define DAC_CH1 0x4000
 #define ADC_INIT 0x83
 #define ADC_START 0x8B
 #define ADC_FLAG 0x10
-#define SIN_BASE_ADDRESS 0x1C00
-#define TRI_BASE_ADDRESS 0x1D00
-#define SQU_BASE_ADDRESS 0x1E00
-#define STW_BASE_ADDRESS 0x1F00
+#define SIN_BASE_ADDR 0x1C00
+#define TRI_BASE_ADDR 0x1D00
+#define SQU_BASE_ADDR 0x1E00
+#define STW_BASE_ADDR 0x1F00
 
 sbit D_SER     = P1 ^ 0;
 sbit D_SRCLK   = P1 ^ 1;
@@ -21,8 +21,6 @@ sbit KEY2      = P3 ^ 5;
 sbit EADC      = 0xAD;
 sbit PADC      = 0xBD;
 sfr CLK_DIV    = 0x97;
-//sbit Y         = P1 ^ 4;
-//sbit Z         = P1 ^ 5;
 sfr ADC_CONTR  = 0xBC;
 sfr ADC_RES    = 0xBD;
 sfr P1ASF      = 0x9D;
@@ -31,31 +29,30 @@ unsigned char updateAmpFlag = 0;
 unsigned char updateFreFlag = 0;
 unsigned char mode1Status = 0;
 //mode1status = 0初始 1循环显示 2波形 3改幅度 4该频率
-unsigned int channalSelect = 0x0000; //DAC通道选择
 unsigned int         ad_temp = 0;
 unsigned char        dspbuf[4] = {0xef, 0xef, 0xef, 0xef}, sel = 0;
 unsigned int         clocktime = 0, adcount = 0;
 unsigned char        ADC_RESULT = 0;
 unsigned char        DAC_VALUE = 0;
 unsigned char        OUTPUT_VALUE = 0;
-unsigned int         adAddress = ADC_BASE_ADDRESS;
-unsigned int         daAddress = ADC_BASE_ADDRESS;
-unsigned int         sinAddress = SIN_BASE_ADDRESS;
-unsigned int         triAddress = TRI_BASE_ADDRESS;
-unsigned int         squAddress = SQU_BASE_ADDRESS;
-unsigned int         STWAddress = STW_BASE_ADDRESS;
+unsigned int         adAddr = ADC_BASE_ADDR;
+unsigned int         daAddr = ADC_BASE_ADDR;
+unsigned int         sinAddr = SIN_BASE_ADDR;
+unsigned int         triAddr = TRI_BASE_ADDR;
+unsigned int         squAddr = SQU_BASE_ADDR;
+unsigned int         stwAddr = STW_BASE_ADDR;
 unsigned char        key_sta = 0, key_num;
 unsigned char        workMode = 0;
 unsigned char        outputWaveMode = 1;
-unsigned char        WAVE_VALUE = 0;
+unsigned char        outputWaveValue = 0;
 unsigned char        outputFreq = 10;
-float        outputAmp = 1.0;
+float        					outputAmp = 1.0;
 unsigned int        inputFreq = 0;
 float               inputAmp = 0.0;
 unsigned char        value = 0;
 unsigned char        valueBuffer = 0;
 unsigned char        amp = 0;
-unsigned char        ampl = 0;
+unsigned char        amp_last = 0;
 unsigned char        amp_up = 128;
 unsigned char        amp_low = 128;
 int                  fre = 0;
@@ -65,19 +62,18 @@ float                fre_count = 0;
 unsigned char initStatus = 1; //1代表为初始化状态，不更新数码管内容。
 
 void init_timer0();
-void init_special_interrupts();
+void init_interrupts();
 void updateWaveBuffer();
 void dsptask();
 //void timer_isr() interrupt 1;
 //void updateFeature() interrupt 3;
 void fdisp(unsigned char n, unsigned char m);
 void main(void);
-void adc_init();
+void init_adc();
 void adc_start();
-void dac_work(int channalSelect, char value);
 //void adc_work() interrupt 5;
 void delay(int delayTime);
-void waveInit();
+void init_outputWave();
 void key_service();
 void keyWork();
 void ampMeasure();
@@ -101,7 +97,7 @@ void init_timer1()
     TR1 = 1;
 }
 
-void init_special_interrupts()
+void init_interrupts()
 {
     EA  = 1;
     ET0 = 1;
@@ -190,7 +186,6 @@ void timer_isr() interrupt 1
     EA = 0;
     adcount++;
     adc_start();
-    //Y = !Y;
     if (adcount == 3)
     {
         updateWaveBuffer();
@@ -198,7 +193,6 @@ void timer_isr() interrupt 1
     if (adcount == 5)
     {
         dsptask();
-        //Z = !Z;
         key_service();
         adcount = 0;
     }
@@ -216,51 +210,34 @@ void updateFeature() interrupt 3
     }
     if (workMode == 1)
     {
-        daAddress = adAddress;
-        if (adAddress <= 0x1Bf0)
+        daAddr = adAddr;
+        if (adAddr > 0x1Bf0)
         {
-            XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
-            ad_temp = ADC_RESULT;
-            adAddress++;
+            adAddr = ADC_BASE_ADDR;
         }
-        else
-        {
-            adAddress = ADC_BASE_ADDRESS;
-            XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
-            ad_temp = ADC_RESULT;
-            adAddress++;
-        }
+        XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+        ad_temp = ADC_RESULT;
+        adAddr++;
     }
     if (workMode == 2)
     {
-        if (daAddress <= 0x1Bf0)
+        if (daAddr > 0x1Bf0)
         {
-            OUTPUT_VALUE = XBYTE[daAddress] / 2;
-            daAddress = daAddress + 1;
+            daAddr = ADC_BASE_ADDR;
         }
-        else
-        {
-            daAddress = ADC_BASE_ADDRESS;
-            OUTPUT_VALUE = XBYTE[daAddress] / 2;
-            daAddress++;
-        }
+        OUTPUT_VALUE = XBYTE[daAddr] / 2;
+        daAddr++;
     }
     if (workMode == 3)
     {
-        daAddress = adAddress;
-        if (adAddress <= 0x0800)
+        daAddr = adAddr;
+        if (adAddr > 0x0800)
         {
-            XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
-            ad_temp = ADC_RESULT;
-            adAddress++;
+            adAddr = ADC_BASE_ADDR;
         }
-        else
-        {
-            adAddress = ADC_BASE_ADDRESS;
-            XBYTE[adAddress] = (ADC_RESULT - 64) * 2;
-            ad_temp = ADC_RESULT;
-            adAddress++;
-        }
+        XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+        ad_temp = ADC_RESULT;
+        adAddr++;
     }
 
     if (clocktime == 4000)
@@ -279,68 +256,68 @@ void updateWaveBuffer()
         {
         case 1:
         {
-            if (sinAddress <= 0x1CFF)
+            if (sinAddr <= 0x1CFF)
             {
                 if (outputAmp != 1)
                 {
-                    WAVE_VALUE = (XBYTE[sinAddress] - 32) * outputAmp + 32;
+                    outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
                 }
                 else
                 {
-                    WAVE_VALUE = XBYTE[sinAddress];
+                    outputWaveValue = XBYTE[sinAddr];
                 }
-                sinAddress = sinAddress + 1 + outputFreq / 1.6;
+                sinAddr = sinAddr + 1 + outputFreq / 1.6;
             }
             else
             {
-                sinAddress = SIN_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[sinAddress] - 32) * outputAmp + 32;
-                sinAddress = sinAddress + 1 + outputFreq / 1.6;
+                sinAddr = SIN_BASE_ADDR;
+                outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
+                sinAddr = sinAddr + 1 + outputFreq / 1.6;
             }
         }
         break;
         case 2:
         {
-            if (triAddress <= 0x1DF3)
+            if (triAddr <= 0x1DF3)
             {
-                WAVE_VALUE = (XBYTE[triAddress] - 64) * outputAmp + 64;
-                triAddress = triAddress + 1 + outputFreq / 1.6;
+                outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
+                triAddr = triAddr + 1 + outputFreq / 1.6;
             }
             else
             {
-                triAddress = TRI_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[triAddress] - 64) * outputAmp + 64;
-                triAddress = triAddress + 1 + outputFreq / 1.6;
+                triAddr = TRI_BASE_ADDR;
+                outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
+                triAddr = triAddr + 1 + outputFreq / 1.6;
             }
         }
         break;
         case 3:
         {
-            if (squAddress <= 0x1EFF)
+            if (squAddr <= 0x1EFF)
             {
-                WAVE_VALUE = (XBYTE[squAddress] - 64) * outputAmp + 64;
-                squAddress = squAddress + 1 + outputFreq / 1.6;
+                outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
+                squAddr = squAddr + 1 + outputFreq / 1.6;
             }
             else
             {
-                squAddress = SQU_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[squAddress] - 64) * outputAmp + 64;
-                squAddress = squAddress + 1 + outputFreq / 1.6;
+                squAddr = SQU_BASE_ADDR;
+                outputWaveValue = (XBYTE[squAddr] - 64) * outputAmp + 64;
+                squAddr = squAddr + 1 + outputFreq / 1.6;
             }
         }
         break;
         case 4:
         {
-            if (STWAddress <= 0x1FFF)
+            if (stwAddr <= 0x1FFF)
             {
-                WAVE_VALUE = (XBYTE[STWAddress] - 64) * outputAmp + 64;
-                STWAddress = STWAddress + 1 + outputFreq / 1.6 ;
+                outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
+                stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
             }
             else
             {
-                STWAddress = STW_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[STWAddress] - 64) * outputAmp + 64;
-                STWAddress = STWAddress + 1 + outputFreq / 1.6 ;
+                stwAddr = STW_BASE_ADDR;
+                outputWaveValue = (XBYTE[stwAddr] - 64) * outputAmp + 64;
+                stwAddr = stwAddr + 1 + outputFreq / 1.6 ;
             }
         }
         break;
@@ -350,96 +327,19 @@ void updateWaveBuffer()
     }
 }
 
+code unsigned char segCode[] =
+{
+    /* 0-9 */  0x11, 0x7d, 0x23, 0x29, 0x4d, 0x89, 0x81, 0x3d, 0x01, 0x09,
+    /* 0-9. */ 0x10, 0x7c, 0x22, 0x28, 0x4c, 0x88, 0x80, 0x3c, 0x00, 0x08,
+    /* U */    0x51,
+    /* F */    0x87,
+    /* - */    0xef,
+    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
+};
+
 void fdisp(unsigned char n, unsigned char m)
 {
-    char  c;
-    switch (n)
-    {
-    case 0:
-        c = 0x11;
-        break;
-    case 1:
-        c = 0x7d;
-        break;
-    case 2:
-        c = 0x23;
-        break;
-    case 3:
-        c = 0x29;
-        break;
-    case 4:
-        c = 0x4d;
-        break;
-    case 5:
-        c = 0x89;
-        break;
-    case 6:
-        c = 0x81;
-        break;
-    case 7:
-        c = 0x3d;
-        break;
-    case 8:
-        c = 0x01;
-        break;
-    case 9:
-        c = 0x09;
-        break;
-    case 10:
-        c = 0x10;
-        break;
-    case 11:
-        c = 0x7c;
-        break;
-    case 12:
-        c = 0x22;
-        break;
-    case 13:
-        c = 0x28;
-        break;
-    case 14:
-        c = 0x4c;
-        break;
-    case 15:
-        c = 0x88;
-        break;
-    case 16:
-        c = 0x80;
-        break;
-    case 17:
-        c = 0x3c;
-        break;
-    case 18:
-        c = 0x00;
-        break;
-    case 19:
-        c = 0x08;
-        break;
-    case 20:  // U
-        c = 0x51;
-        break;
-    case 21:  // F
-        c = 0x87;
-        break;
-    case 22:  // -
-        c = 0xef;
-        break;
-    case 23:  // n
-        c = 0x15;
-        break;
-    case 24:  // t
-        c = 0xc3;
-        break;
-    case 25:  // r
-        c = 0xe7;
-        break;
-    case 26:  // q
-        c = 0x0d;
-        break;
-    default:
-        c = 0x11;
-    }
-    dspbuf[m] = c;
+    dspbuf[m] = (n < sizeof(segCode)) ? segCode[n] : 0x11;
 }
 
 void main(void)
@@ -448,9 +348,9 @@ void main(void)
     CLK_DIV = CLK_DIV | 0x01;
     init_timer0();
     init_timer1();
-    init_special_interrupts();
-    adc_init();
-    waveInit();
+    init_interrupts();
+    init_adc();
+    init_outputWave();
     for (;;)
     {
         switch (workMode)
@@ -597,7 +497,7 @@ void main(void)
     }
 }
 
-void adc_init()
+void init_adc()
 {
     P1ASF = 0x08;
     ADC_CONTR = ADC_INIT;
@@ -611,26 +511,26 @@ void adc_start()
     {
     case 1:
     {
-        channalSelect = CH1;
-        dac_work(channalSelect, DAC_VALUE);
-        channalSelect = CH2;
-        dac_work(channalSelect, WAVE_VALUE);
+
+        XBYTE[DAC_CH1] = DAC_VALUE;
+
+        XBYTE[DAC_CH2] = outputWaveValue;
     }
     break;
     case 2:
     {
-        channalSelect = CH1;
-        dac_work(channalSelect, DAC_VALUE);
-        channalSelect = CH2;
-        dac_work(channalSelect, OUTPUT_VALUE);
+
+        XBYTE[DAC_CH1] = DAC_VALUE;
+
+        XBYTE[DAC_CH2] = OUTPUT_VALUE;
     }
     break;
     case 3:
     {
-        channalSelect = CH1;
-        dac_work(channalSelect, DAC_VALUE);
-        channalSelect = CH2;
-        dac_work(channalSelect, 0x00);
+
+        XBYTE[DAC_CH1] = DAC_VALUE;
+
+        XBYTE[DAC_CH2] = 0x00;
     }
     break;
     default:
@@ -638,10 +538,6 @@ void adc_start()
     }
 }
 
-void dac_work(int channalSelect, char value)
-{
-    XBYTE[channalSelect] = value;
-}
 
 void adc_work() interrupt 5
 {
@@ -659,47 +555,47 @@ void delay(int delayTime)
     }
 }
 
-void waveInit()
+void init_outputWave()
 {
-    unsigned int address = 0;
+    unsigned int addr = 0;
     unsigned int i = 0;
     //Sin Wave
     i = 0;
-    address = SIN_BASE_ADDRESS;
-    for (; address <= 0x1CFF; address++, i++)
+    addr = SIN_BASE_ADDR;
+    for (; addr <= 0x1CFF; addr++, i++)
     {
-        XBYTE[address] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
+        XBYTE[addr] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
     }
     //Triangular Wave
     i = 0;
-    address = TRI_BASE_ADDRESS;
-    for (; address <= 0x1D7F; address++, i++)
+    addr = TRI_BASE_ADDR;
+    for (; addr <= 0x1D7F; addr++, i++)
     {
-        XBYTE[address] = 49 + floor(30 * (i / 128.0));
+        XBYTE[addr] = 49 + floor(30 * (i / 128.0));
     }
     i = 0;
-    address = 0x1D80;
-    for (; address <= 0x1DFF; address++, i++)
+    addr = 0x1D80;
+    for (; addr <= 0x1DFF; addr++, i++)
     {
-        XBYTE[address] = 79 - floor(30 * (i / 128.0));
+        XBYTE[addr] = 79 - floor(30 * (i / 128.0));
     }
     //Square Wave
-    address = SQU_BASE_ADDRESS;
-    for (; address <= 0x1E7F; address++)
+    addr = SQU_BASE_ADDR;
+    for (; addr <= 0x1E7F; addr++)
     {
-        XBYTE[address] = 64 + 15;
+        XBYTE[addr] = 64 + 15;
     }
-    address = 0x1E80;
-    for (; address <= 0x1EFF; address++)
+    addr = 0x1E80;
+    for (; addr <= 0x1EFF; addr++)
     {
-        XBYTE[address] = 64 - 15;
+        XBYTE[addr] = 64 - 15;
     }
     //Sawtooth Wave
     i = 0;
-    address = STW_BASE_ADDRESS;
-    for (; address <= 0x1FFF; address++, i++)
+    addr = STW_BASE_ADDR;
+    for (; addr <= 0x1FFF; addr++, i++)
     {
-        XBYTE[address] = 64 - 15 + floor(30 * i / 256);
+        XBYTE[addr] = 64 - 15 + floor(30 * i / 256);
     }
 }
 
@@ -818,7 +714,7 @@ void ampMeasure()
     {
         amp_low = amp;
     }
-    if (adAddress > 0x0800)
+    if (adAddr > 0x0800)
     {
         inputAmp = (amp_up * 5.0 / 1.1 - amp_low * 5.0 / 1.1) / 128;
         amp_up = amp_low = 128;
@@ -828,9 +724,9 @@ void ampMeasure()
 void freMeasure()
 {
     amp = ADC_RESULT;
-    if (amp > 128 && ampl <= 128)
+    if (amp > 128 && amp_last <= 128)
     {
-        fre_up = adAddress;
+        fre_up = adAddr;
         if (fre_low != 0)
         {
             fre = fre + fabs(fre_low - fre_up);
@@ -838,13 +734,13 @@ void freMeasure()
         }
         fre_low = fre_up;
     }
-    if (adAddress > 0x0800)
+    if (adAddr > 0x0800)
     {
         inputFreq = floor(2000 / (fre * 1.0 / fre_count));
         fre = 0;
         fre_up = fre_low = 0;
         fre_count = 0;
-        amp = ampl = 129;
+        amp = amp_last = 129;
     }
-    ampl = amp;
+    amp_last = amp;
 }
