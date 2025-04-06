@@ -1,4 +1,4 @@
-BL51 BANKED LINKER/LOCATER V6.22                                                        04/06/2025  21:10:08  PAGE 1
+BL51 BANKED LINKER/LOCATER V6.22                                                        04/06/2025  21:13:31  PAGE 1
 
 
 BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
@@ -59,7 +59,7 @@ LINK MAP OF MODULE:  .\Objects\lzOsc (MAIN)
             CODE    077BH     0217H     UNIT         ?PR?KEYWORK?MAIN
             CODE    0992H     01FCH     UNIT         ?PR?UPDATEOUTPUTWAVE?MAIN
             CODE    0B8EH     01C5H     UNIT         ?PR?INIT_OUTPUTWAVE?MAIN
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 2
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 2
 
 
             CODE    0D53H     016EH     UNIT         ?PR?SIN?SIN
@@ -119,7 +119,7 @@ SEGMENT                              BIT_GROUP          DATA_GROUP
   +--> ?PR?_DSPNUM?MAIN
   +--> ?PR?KEYWORK?MAIN
 
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 3
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 3
 
 
 ?PR?INIT_ALL?MAIN                 -----    -----      -----    -----
@@ -179,7 +179,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   D:002AH         PUBLIC        DAC_VALUE
   D:002BH         PUBLIC        inputAmp10x
   D:002CH         PUBLIC        outputAmp10x
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 4
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 4
 
 
   D:00BCH         PUBLIC        ADC_CONTR
@@ -239,7 +239,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   D:005DH         PUBLIC        key_sta
   C:13E2H         PUBLIC        _dspNum
   D:005EH         PUBLIC        key_num
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 5
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 5
 
 
   -------         PROC          INIT_TIMER0
@@ -299,7 +299,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:1310H         LINE#         162
   C:1318H         LINE#         163
   C:1318H         LINE#         164
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 6
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 6
 
 
   C:131BH         LINE#         165
@@ -359,7 +359,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:0F9AH         LINE#         219
   C:0F9CH         LINE#         220
   -------         ENDPROC       UPDATEFEATURE
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 7
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 7
 
 
   -------         PROC          ADC_WORK
@@ -419,7 +419,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   D:0012H         SYMBOL        j
   -------         ENDDO         
   C:077BH         LINE#         274
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 8
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 8
 
 
   C:077BH         LINE#         275
@@ -479,7 +479,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:08D0H         LINE#         331
   C:08D0H         LINE#         332
   C:08D6H         LINE#         333
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 9
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 9
 
 
   C:08D6H         LINE#         334
@@ -539,7 +539,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:1147H         LINE#         380
   C:1147H         LINE#         381
   C:1149H         LINE#         382
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 10
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 10
 
 
   C:114BH         LINE#         383
@@ -599,7 +599,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:11D1H         LINE#         438
   C:11D3H         LINE#         439
   -------         ENDPROC       DSPTASK
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 11
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 11
 
 
   -------         PROC          INIT_OUTPUTWAVE
@@ -659,7 +659,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:09B7H         LINE#         496
   C:09C8H         LINE#         497
   C:09F3H         LINE#         498
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 12
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 12
 
 
   C:0A2BH         LINE#         499
@@ -719,7 +719,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:0FC8H         LINE#         552
   C:0FCEH         LINE#         553
   C:0FD4H         LINE#         554
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 13
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 13
 
 
   C:0FD4H         LINE#         555
@@ -779,7 +779,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:053FH         LINE#         607
   C:053FH         LINE#         608
   C:0546H         LINE#         609
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 14
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 14
 
 
   C:0554H         LINE#         610
@@ -839,7 +839,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:0635H         LINE#         665
   C:063BH         LINE#         666
   C:0649H         LINE#         667
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 15
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 15
 
 
   C:0653H         LINE#         668
@@ -891,15 +891,15 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
   C:076AH         LINE#         717
   C:076AH         LINE#         718
   C:076AH         LINE#         719
-  C:076AH         LINE#         720
-  C:0772H         LINE#         721
+  C:076AH         LINE#         721
   C:0772H         LINE#         722
-  C:0775H         LINE#         723
-  C:0778H         LINE#         724
-  C:0778H         LINE#         726
+  C:0772H         LINE#         723
+  C:0775H         LINE#         724
+  C:0778H         LINE#         725
+  C:0778H         LINE#         727
   -------         ENDPROC       MAIN
   -------         ENDMOD        MAIN
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 16
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 16
 
 
 
@@ -959,7 +959,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\lzOsc (MAIN)
 
   -------         MODULE        ?C?ULCMP
   C:04C6H         PUBLIC        ?C?ULCMP
-BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:10:08  PAGE 17
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/06/2025  21:13:31  PAGE 17
 
 
   -------         ENDMOD        ?C?ULCMP

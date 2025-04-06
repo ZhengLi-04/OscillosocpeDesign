@@ -495,12 +495,12 @@ void updateOutputWave()
         {
             if (sinAddr > 0x1CFF) sinAddr = SIN_BASE_ADDR;
             outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
-            sinAddr = sinAddr + 1 + outputFreq / 1.6;
+            sinAddr = sinAddr + 1 + outputFreq / 1.6; // 1.6为经验值
         }
         break;
         case 2:
         {
-            if (triAddr > 0x1DF3) triAddr = TRI_BASE_ADDR;
+            if (triAddr > 0x1DFF) triAddr = TRI_BASE_ADDR;
             outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
             triAddr = triAddr + 1 + outputFreq / 1.6;
         }
@@ -539,7 +539,7 @@ void ampMeasure()
     }
     if (adAddr > 0x0800)
     {
-        inputAmp = (amp_max - amp_min) * 5.0 / 1.1 / 128;
+        inputAmp = (amp_max - amp_min) * 5.0 / 1.1 / 128; // 1.1为经验值
         amp_max = amp_min = 128;
     }
 }
@@ -587,7 +587,7 @@ void main(void)
     {
         switch (workMode)
         {
-        case 0:
+        case 0: // 开机显示"----"
         {
             initStatus = 1;
             dspNum(22, 0);
@@ -596,7 +596,7 @@ void main(void)
             dspNum(22, 3);
         }
         break;
-        case 1:
+        case 1: // 显示设置输出波的交互界面
         {
             DAC_VALUE = ADC_RESULT;
             if (initStatus == 0)
@@ -672,12 +672,12 @@ void main(void)
             }
         }
         break;
-        case 2:
+        case 2:	// 波形回放
         {
             DAC_VALUE = ADC_RESULT;
         }
         break;
-        case 3:
+        case 3: // 循环显示测量值
         {
             DAC_VALUE = ADC_RESULT;
             if (initStatus == 0)
@@ -717,6 +717,7 @@ void main(void)
         default:
             break;
         }
+        // 键盘检测
         if (key_sta & 0x01)
         {
             keyWork();

@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 1   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
@@ -62,7 +62,7 @@ line level    source
   52          unsigned int    adAddr = ADC_BASE_ADDR;
   53          unsigned int    daAddr = ADC_BASE_ADDR;
   54          unsigned int    sinAddr = SIN_BASE_ADDR;
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 2   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 2   
 
   55          unsigned int    triAddr = TRI_BASE_ADDR;
   56          unsigned int    squAddr = SQU_BASE_ADDR;
@@ -126,7 +126,7 @@ line level    source
  114   1          TH0 = 0X06;
  115   1          TR0 = 1;
  116   1      }
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 3   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 3   
 
  117          
  118          void init_timer1()
@@ -190,7 +190,7 @@ line level    source
  176          {
  177   1          EA = 0;
  178   1          clocktime++;
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 4   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 4   
 
  179   1          if (workMode == 3)
  180   1          {
@@ -254,7 +254,7 @@ line level    source
  238   2          break;
  239   2          case 2:
  240   2          {
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 5   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 5   
 
  241   3              XBYTE[DAC_CH1] = DAC_VALUE;
  242   3              XBYTE[DAC_CH2] = mode2OutputValue;
@@ -318,7 +318,7 @@ line level    source
  300   3                  if (mode1Status == 4)
  301   3                      mode1Status = 1;
  302   3                  else
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 6   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 6   
 
  303   3                      mode1Status = mode1Status + 1;
  304   3              }
@@ -382,7 +382,7 @@ line level    source
  362          void dspNum(unsigned char n, unsigned char m)
  363          {
  364   1          dspbuf[m] = (n < sizeof(segCode)) ? segCode[n] : 0x11;
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 7   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 7   
 
  365   1      }
  366          
@@ -446,7 +446,7 @@ line level    source
  424   1          sel++;
  425   1          if (sel > 4) sel = 0;
  426   1          for (b = 0x80, i = 0; i < 8; i++)
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 8   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 8   
 
  427   1          {
  428   2              if (a & b)  D_SER = 1;
@@ -510,7 +510,7 @@ line level    source
  486          
  487          // 根据设定值更新波形
  488          void updateOutputWave()
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 9   
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 9   
 
  489          {
  490   1          if (workMode == 1)
@@ -521,12 +521,12 @@ line level    source
  495   3              {
  496   4                  if (sinAddr > 0x1CFF) sinAddr = SIN_BASE_ADDR;
  497   4                  outputWaveValue = (XBYTE[sinAddr] - 32) * outputAmp + 32;
- 498   4                  sinAddr = sinAddr + 1 + outputFreq / 1.6;
+ 498   4                  sinAddr = sinAddr + 1 + outputFreq / 1.6; // 1.6为经验值
  499   4              }
  500   3              break;
  501   3              case 2:
  502   3              {
- 503   4                  if (triAddr > 0x1DF3) triAddr = TRI_BASE_ADDR;
+ 503   4                  if (triAddr > 0x1DFF) triAddr = TRI_BASE_ADDR;
  504   4                  outputWaveValue = (XBYTE[triAddr] - 64) * outputAmp + 64;
  505   4                  triAddr = triAddr + 1 + outputFreq / 1.6;
  506   4              }
@@ -565,7 +565,7 @@ line level    source
  539   2          }
  540   1          if (adAddr > 0x0800)
  541   1          {
- 542   2              inputAmp = (amp_max - amp_min) * 5.0 / 1.1 / 128;
+ 542   2              inputAmp = (amp_max - amp_min) * 5.0 / 1.1 / 128; // 1.1为经验值
  543   2              amp_max = amp_min = 128;
  544   2          }
  545   1      }
@@ -574,7 +574,7 @@ line level    source
  548          {
  549   1          amp = ADC_RESULT;
  550   1          if (amp > 128 && amp_last <= 128)
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 10  
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 10  
 
  551   1          {
  552   2              fre_up = adAddr;
@@ -615,7 +615,7 @@ line level    source
  587   1          {
  588   2              switch (workMode)
  589   2              {
- 590   3              case 0:
+ 590   3              case 0: // 开机显示"----"
  591   3              {
  592   4                  initStatus = 1;
  593   4                  dspNum(22, 0);
@@ -624,7 +624,7 @@ line level    source
  596   4                  dspNum(22, 3);
  597   4              }
  598   3              break;
- 599   3              case 1:
+ 599   3              case 1: // 显示设置输出波的交互界面
  600   3              {
  601   4                  DAC_VALUE = ADC_RESULT;
  602   4                  if (initStatus == 0)
@@ -638,7 +638,7 @@ line level    source
  610   7                              if (outputFreq <= 0) outputFreq = 0;
  611   7                              dspNum((outputFreq / 100) % 10, 1);
  612   7                              dspNum((outputFreq / 10) % 10, 2);
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 11  
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 11  
 
  613   7                              dspNum(outputFreq % 10, 3);
  614   7                          }
@@ -702,14 +702,14 @@ line level    source
  672   5                  }
  673   4              }
  674   3              break;
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 12  
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 12  
 
- 675   3              case 2:
+ 675   3              case 2: // 波形回放
  676   3              {
  677   4                  DAC_VALUE = ADC_RESULT;
  678   4              }
  679   3              break;
- 680   3              case 3:
+ 680   3              case 3: // 循环显示测量值
  681   3              {
  682   4                  DAC_VALUE = ADC_RESULT;
  683   4                  if (initStatus == 0)
@@ -749,15 +749,16 @@ line level    source
  717   3              default:
  718   3                  break;
  719   3              }
- 720   2              if (key_sta & 0x01)
- 721   2              {
- 722   3                  keyWork();
- 723   3                  key_sta = key_sta & 0xfe;
- 724   3              }
- 725   2      
- 726   2          }
- 727   1      }
- 728          
+ 720   2              // 键盘检测
+ 721   2              if (key_sta & 0x01)
+ 722   2              {
+ 723   3                  keyWork();
+ 724   3                  key_sta = key_sta & 0xfe;
+ 725   3              }
+ 726   2      
+ 727   2          }
+ 728   1      }
+ 729          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
@@ -765,9 +766,9 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
    CONSTANT SIZE    =     27    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     62       8
-C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:10:07 PAGE 13  
+C51 COMPILER V9.54   MAIN                                                                  04/06/2025 21:13:30 PAGE 13  
 
+   DATA SIZE        =     62       8
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
