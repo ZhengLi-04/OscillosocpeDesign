@@ -52,7 +52,7 @@ unsigned char        workMode = 0;
 unsigned char        waveMode = 1;
 unsigned char        WAVE_VALUE = 0;
 unsigned char        isChange = 0;
-unsigned char        freBuffer = 30;
+unsigned char        freBuffer = 10;
 float        ampBuffer = 1.0;
 unsigned int         freq = 0;
 float                vpp = 0.0;
@@ -325,7 +325,7 @@ void updateWaveBuffer()
             {
                 if (ampBuffer != 1)
                 {
-                    WAVE_VALUE = XBYTE[sinAddress] * ampBuffer;
+                    WAVE_VALUE = (XBYTE[sinAddress] - 32) * ampBuffer + 32;
                 }
                 else
                 {
@@ -336,7 +336,7 @@ void updateWaveBuffer()
             else
             {
                 sinAddress = SIN_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[sinAddress] * ampBuffer;
+                WAVE_VALUE = (XBYTE[sinAddress] - 32) * ampBuffer + 32;
                 sinAddress = sinAddress + 1 + freBuffer;
             }
         }
@@ -345,14 +345,14 @@ void updateWaveBuffer()
         {
             if (triAddress + freBuffer <= 0x1DF3)
             {
-                WAVE_VALUE = XBYTE[triAddress + freBuffer] + ampBuffer;
-                triAddress++;
+                WAVE_VALUE = XBYTE[triAddress] * ampBuffer;
+                triAddress = triAddress + 1 + freBuffer;
             }
             else
             {
                 triAddress = TRI_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[triAddress];
-                triAddress++;
+                WAVE_VALUE = XBYTE[triAddress] * ampBuffer;
+                triAddress = triAddress + 1 + freBuffer;
             }
         }
         break;
@@ -360,14 +360,14 @@ void updateWaveBuffer()
         {
             if (squAddress + freBuffer <= 0x1EF3)
             {
-                WAVE_VALUE = XBYTE[squAddress + freBuffer] + ampBuffer;
-                squAddress++;
+                WAVE_VALUE = XBYTE[squAddress] * ampBuffer;
+                squAddress = squAddress + 1 + freBuffer;
             }
             else
             {
                 squAddress = SQU_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[squAddress];
-                squAddress++;
+                WAVE_VALUE = XBYTE[squAddress] * ampBuffer;
+                squAddress = squAddress + 1 + freBuffer;
             }
         }
         break;
@@ -375,14 +375,14 @@ void updateWaveBuffer()
         {
             if (teeAddress + freBuffer <= 0x1F79)
             {
-                WAVE_VALUE = XBYTE[teeAddress + freBuffer] + ampBuffer;
-                teeAddress++;
+                WAVE_VALUE = XBYTE[teeAddress] * ampBuffer;
+                teeAddress = teeAddress + 1 + freBuffer ;
             }
             else
             {
                 teeAddress = TEE_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[teeAddress];
-                teeAddress++;
+                WAVE_VALUE = XBYTE[teeAddress] * ampBuffer;
+                teeAddress = teeAddress + 1 + freBuffer ;
             }
         }
         break;
@@ -728,7 +728,7 @@ void waveInit()
     address = SIN_BASE_ADDRESS;
     for (; address <= 0x1CFF; address++, i++)
     {
-        XBYTE[address] = floor(12 * (sin(3.14 * i / 128) +1)) + 32;
+        XBYTE[address] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
     }
     //triangular
     i = 0;
