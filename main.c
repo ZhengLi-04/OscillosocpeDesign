@@ -2,7 +2,6 @@
 #include<absacc.h>
 #include<math.h>
 
-//---------------------------------- main.h???? ----------------------------------
 #define ADC_BASE_ADDRESS 0x0000
 #define CH2 0x2000
 #define CH1 0x4000
@@ -12,7 +11,7 @@
 #define SIN_BASE_ADDRESS 0x1C00
 #define TRI_BASE_ADDRESS 0x1D00
 #define SQU_BASE_ADDRESS 0x1E00
-#define TEE_BASE_ADDRESS 0x1F00
+#define STW_BASE_ADDRESS 0x1F00
 
 sbit D_SER     = P1 ^ 0;
 sbit D_SRCLK   = P1 ^ 1;
@@ -22,11 +21,10 @@ sbit KEY2      = P3 ^ 5;
 sbit EADC      = 0xAD;
 sbit PADC      = 0xBD;
 sfr CLK_DIV    = 0x97;
-sbit Y         = P1 ^ 4;
-sbit Z         = P1 ^ 5;
+//sbit Y         = P1 ^ 4;
+//sbit Z         = P1 ^ 5;
 sfr ADC_CONTR  = 0xBC;
 sfr ADC_RES    = 0xBD;
-sfr ADC_RESL   = 0xBE;
 sfr P1ASF      = 0x9D;
 
 unsigned char updateAmpFlag = 0;
@@ -34,9 +32,8 @@ unsigned char updateFreFlag = 0;
 unsigned char mode1Status = 0;
 //mode1status = 0初始 1循环显示 2波形 3改幅度 4该频率
 unsigned int channalSelect = 0x0000; //DAC通道选择
-unsigned int         p_read = 0x0000, p_write = 0x0000, ad_temp = 0;
+unsigned int         ad_temp = 0;
 unsigned char        dspbuf[4] = {0xef, 0xef, 0xef, 0xef}, sel = 0;
-unsigned char        lcdbuf[4] = {0xF7, 0xFB, 0xFD, 0xFE};
 unsigned int         clocktime = 0, adcount = 0;
 unsigned char        ADC_RESULT = 0;
 unsigned char        DAC_VALUE = 0;
@@ -46,16 +43,15 @@ unsigned int         daAddress = ADC_BASE_ADDRESS;
 unsigned int         sinAddress = SIN_BASE_ADDRESS;
 unsigned int         triAddress = TRI_BASE_ADDRESS;
 unsigned int         squAddress = SQU_BASE_ADDRESS;
-unsigned int         teeAddress = TEE_BASE_ADDRESS;
+unsigned int         STWAddress = STW_BASE_ADDRESS;
 unsigned char        key_sta = 0, key_num;
 unsigned char        workMode = 0;
-unsigned char        waveMode = 1;
+unsigned char        outputWaveMode = 1;
 unsigned char        WAVE_VALUE = 0;
-unsigned char        isChange = 0;
-unsigned char        freBuffer = 10;
-float        ampBuffer = 1.0;
-unsigned int         freq = 0;
-float                vpp = 0.0;
+unsigned char        outputFreq = 10;
+float        outputAmp = 1.0;
+unsigned int        inputFreq = 0;
+float               inputAmp = 0.0;
 unsigned char        value = 0;
 unsigned char        valueBuffer = 0;
 unsigned char        amp = 0;
@@ -66,8 +62,6 @@ int                  fre = 0;
 int                  fre_up = 0;
 int                  fre_low = 0;
 float                fre_count = 0;
-unsigned char        ledbuffer[4] = {0x11, 0x11, 0x11, 0x11};
-unsigned char tmpA, tmpB, tmpC;
 unsigned char initStatus = 1; //1代表为初始化状态，不更新数码管内容。
 
 void init_timer0();
@@ -88,9 +82,7 @@ void key_service();
 void keyWork();
 void ampMeasure();
 void freMeasure();
-//---------------------------------- main.h???? ----------------------------------
 
-//---------------------------------- main.c???? ----------------------------------
 void init_timer0()
 {
     TMOD &= 0XF0;
@@ -198,7 +190,7 @@ void timer_isr() interrupt 1
     EA = 0;
     adcount++;
     adc_start();
-    Y = !Y;
+    //Y = !Y;
     if (adcount == 3)
     {
         updateWaveBuffer();
@@ -206,7 +198,7 @@ void timer_isr() interrupt 1
     if (adcount == 5)
     {
         dsptask();
-        Z = !Z;
+        //Z = !Z;
         key_service();
         adcount = 0;
     }
@@ -271,43 +263,9 @@ void updateFeature() interrupt 3
         }
     }
 
-    if (clocktime == 500)
+    if (clocktime == 4000)
     {
-        //updateValue();
-    }
-    else if (clocktime == 2000)
-    {
-//        if (initStatus == 0)
-//        {
-//            dspbuf[0] = ledbuffer[0];
-//            dspbuf[1] = ledbuffer[1];
-//            dspbuf[2] = ledbuffer[2];
-//            dspbuf[3] = ledbuffer[3];
-//        }
-//        else
-//        {
-//            fdisp(22, 0);
-//            fdisp(workMode, 1);
-//            fdisp(22, 2);
-//            fdisp(22, 3);
-//        }
-    }
-    else if (clocktime == 4000)
-    {
-//        if (initStatus == 0)
-//        {
-//            dspbuf[0] = ledbuffer[0];
-//            dspbuf[1] = ledbuffer[1];
-//            dspbuf[2] = ledbuffer[2] & 0xFE;
-//            dspbuf[3] = ledbuffer[3];
-//        }
-//        else
-//        {
-//            fdisp(22, 0);
-//            fdisp(workMode, 1);
-//            fdisp(22, 2);
-//            fdisp(22, 3);
-//        }
+
         clocktime = 0;
     }
     EA = 1;
@@ -317,27 +275,27 @@ void updateWaveBuffer()
 {
     if (workMode == 1)
     {
-        switch (waveMode)
+        switch (outputWaveMode)
         {
         case 1:
         {
             if (sinAddress <= 0x1CFF)
             {
-                if (ampBuffer != 1)
+                if (outputAmp != 1)
                 {
-                    WAVE_VALUE = (XBYTE[sinAddress] - 32) * ampBuffer + 32;
+                    WAVE_VALUE = (XBYTE[sinAddress] - 32) * outputAmp + 32;
                 }
                 else
                 {
                     WAVE_VALUE = XBYTE[sinAddress];
                 }
-                sinAddress = sinAddress + 1 + freBuffer / 1.6;
+                sinAddress = sinAddress + 1 + outputFreq / 1.6;
             }
             else
             {
                 sinAddress = SIN_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[sinAddress] - 32) * ampBuffer + 32;
-                sinAddress = sinAddress + 1 + freBuffer / 1.6;
+                WAVE_VALUE = (XBYTE[sinAddress] - 32) * outputAmp + 32;
+                sinAddress = sinAddress + 1 + outputFreq / 1.6;
             }
         }
         break;
@@ -345,14 +303,14 @@ void updateWaveBuffer()
         {
             if (triAddress <= 0x1DF3)
             {
-                WAVE_VALUE = (XBYTE[triAddress] - 64) * ampBuffer + 64;
-                triAddress = triAddress + 1 + freBuffer / 1.6;
+                WAVE_VALUE = (XBYTE[triAddress] - 64) * outputAmp + 64;
+                triAddress = triAddress + 1 + outputFreq / 1.6;
             }
             else
             {
                 triAddress = TRI_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[triAddress] - 64) * ampBuffer + 64;
-                triAddress = triAddress + 1 + freBuffer / 1.6;
+                WAVE_VALUE = (XBYTE[triAddress] - 64) * outputAmp + 64;
+                triAddress = triAddress + 1 + outputFreq / 1.6;
             }
         }
         break;
@@ -360,29 +318,29 @@ void updateWaveBuffer()
         {
             if (squAddress <= 0x1EFF)
             {
-                WAVE_VALUE = (XBYTE[squAddress] - 64) * ampBuffer + 64;
-                squAddress = squAddress + 1 + freBuffer / 1.6;
+                WAVE_VALUE = (XBYTE[squAddress] - 64) * outputAmp + 64;
+                squAddress = squAddress + 1 + outputFreq / 1.6;
             }
             else
             {
                 squAddress = SQU_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[squAddress] - 64) * ampBuffer + 64;
-                squAddress = squAddress + 1 + freBuffer / 1.6;
+                WAVE_VALUE = (XBYTE[squAddress] - 64) * outputAmp + 64;
+                squAddress = squAddress + 1 + outputFreq / 1.6;
             }
         }
         break;
         case 4:
         {
-            if (teeAddress <= 0x1FFF)
+            if (STWAddress <= 0x1FFF)
             {
-                WAVE_VALUE = (XBYTE[teeAddress] - 64) * ampBuffer + 64;
-                teeAddress = teeAddress + 1 + freBuffer / 1.6 ;
+                WAVE_VALUE = (XBYTE[STWAddress] - 64) * outputAmp + 64;
+                STWAddress = STWAddress + 1 + outputFreq / 1.6 ;
             }
             else
             {
-                teeAddress = TEE_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[teeAddress] - 64) * ampBuffer + 64;
-                teeAddress = teeAddress + 1 + freBuffer / 1.6 ;
+                STWAddress = STW_BASE_ADDRESS;
+                WAVE_VALUE = (XBYTE[STWAddress] - 64) * outputAmp + 64;
+                STWAddress = STWAddress + 1 + outputFreq / 1.6 ;
             }
         }
         break;
@@ -457,14 +415,14 @@ void fdisp(unsigned char n, unsigned char m)
     case 19:
         c = 0x08;
         break;
-    case 20:  // ???"U"??
-        c = 0x51;  // ????:g???,???
+    case 20:  // U
+        c = 0x51;
         break;
-    case 21:  // ???"F"??
-        c = 0x87;  // ??:a+g??
+    case 21:  // F
+        c = 0x87;
         break;
     case 22:  // -
-        c = 0xef;  // -
+        c = 0xef;
         break;
     case 23:  // n
         c = 0x15;
@@ -481,8 +439,6 @@ void fdisp(unsigned char n, unsigned char m)
     default:
         c = 0x11;
     }
-    ledbuffer[m] = c;
-    // if (initStatus == 1)dspbuf[m] = c;
     dspbuf[m] = c;
 }
 
@@ -517,50 +473,47 @@ void main(void)
                 {
                     if (clocktime < 2000)
                     {
-                        fdisp(21, 0);  // ??"F"
-
-                        if (freBuffer > 999) freBuffer = 999;
-                        if (freBuffer <= 0) freBuffer = 0;
-
-                        fdisp((freBuffer / 100) % 10, 1); // ??
-                        fdisp((freBuffer / 10) % 10, 2); // ??
-                        fdisp(freBuffer % 10, 3); // ??
+                        fdisp(21, 0);
+                        if (outputFreq > 999) outputFreq = 999;
+                        if (outputFreq <= 0) outputFreq = 0;
+                        fdisp((outputFreq / 100) % 10, 1);
+                        fdisp((outputFreq / 10) % 10, 2);
+                        fdisp(outputFreq % 10, 3);
                     }
                     else
                     {
-                        valueBuffer = (int)(ampBuffer * 10);
+                        valueBuffer = (int)(outputAmp * 10);
 
-                        fdisp(20, 0);  // ???"U"??(???3????)
-
-                        fdisp((valueBuffer / 100) % 10, 1); // ??
-                        fdisp((valueBuffer / 10) % 10 + 10, 2); // ??
-                        fdisp((valueBuffer / 1) % 10, 3); // ??
+                        fdisp(20, 0);
+                        fdisp((valueBuffer / 100) % 10, 1);
+                        fdisp((valueBuffer / 10) % 10 + 10, 2);
+                        fdisp((valueBuffer / 1) % 10, 3);
                     }
                 }
                 else if (mode1Status == 2)
                 {
-                    if (waveMode == 1)
+                    if (outputWaveMode == 1)
                     {
                         fdisp(22, 0);
                         fdisp(5, 1);
                         fdisp(1, 2);
                         fdisp(23, 3);
                     }
-                    else if (waveMode == 2)
+                    else if (outputWaveMode == 2)
                     {
                         fdisp(22, 0);
                         fdisp(24, 1);
                         fdisp(25, 2);
                         fdisp(1, 3);
                     }
-                    else if (waveMode == 3)
+                    else if (outputWaveMode == 3)
                     {
                         fdisp(22, 0);
                         fdisp(5, 1);
                         fdisp(26, 2);
                         fdisp(20, 3);
                     }
-                    else if (waveMode == 4)
+                    else if (outputWaveMode == 4)
                     {
                         fdisp(22, 0);
                         fdisp(5, 1);
@@ -570,25 +523,22 @@ void main(void)
                 }
                 else if (mode1Status == 3)
                 {
-                    valueBuffer = (int)(ampBuffer * 10);
+                    valueBuffer = (int)(outputAmp * 10);
 
-                    fdisp(20, 0);  // ???"U"??(???3????)
-
-                    fdisp((valueBuffer / 100) % 10, 1); // ??
-                    fdisp((valueBuffer / 10) % 10 + 10, 2); // ??
-                    fdisp((valueBuffer / 1) % 10, 3); // ??
+                    fdisp(20, 0);
+                    fdisp((valueBuffer / 100) % 10, 1);
+                    fdisp((valueBuffer / 10) % 10 + 10, 2);
+                    fdisp((valueBuffer / 1) % 10, 3);
 
                 }
                 else if (mode1Status == 4)
                 {
-                    fdisp(21, 0);  // ??"F"
-
-                    if (freBuffer > 999) freBuffer = 999;
-                    if (freBuffer <= 0) freBuffer = 0;
-
-                    fdisp((freBuffer / 100) % 10, 1); // ??
-                    fdisp((freBuffer / 10) % 10, 2); // ??
-                    fdisp(freBuffer % 10, 3); // ??
+                    fdisp(21, 0);
+                    if (outputFreq > 999) outputFreq = 999;
+                    if (outputFreq <= 0) outputFreq = 0;
+                    fdisp((outputFreq / 100) % 10, 1);
+                    fdisp((outputFreq / 10) % 10, 2);
+                    fdisp(outputFreq % 10, 3);
                 }
             }
         }
@@ -608,16 +558,13 @@ void main(void)
                     updateAmpFlag = 1;
                     if (updateFreFlag == 1)
                     {
-                        //freMeasure();
                         updateFreFlag = 0;
-                        fdisp(21, 0);  // ??"F"
-
-                        if (freq > 999) freq = 999;
-                        if (freq <= 0) freq = 0;
-
-                        fdisp((freq / 100) % 10, 1); // ??
-                        fdisp((freq / 10) % 10, 2); // ??
-                        fdisp(freq % 10, 3); // ??
+                        fdisp(21, 0);
+                        if (inputFreq > 999)inputFreq = 999;
+                        if (inputFreq <= 0)inputFreq = 0;
+                        fdisp((inputFreq / 100) % 10, 1);
+                        fdisp((inputFreq / 10) % 10, 2);
+                        fdisp(inputFreq % 10, 3);
                     }
 
                 }
@@ -626,15 +573,12 @@ void main(void)
                     updateFreFlag = 1;
                     if (updateAmpFlag == 1)
                     {
-                        //ampMeasure();
                         updateAmpFlag = 0;
-                        value = (int)(vpp * 10);
-
-                        fdisp(20, 0);  // ???"U"??(???3????)
-
-                        fdisp((value / 100) % 10, 1); // ??
-                        fdisp((value / 10) % 10 + 10, 2); // ??
-                        fdisp((value / 1) % 10, 3); // ??
+                        value = (int)(inputAmp * 10);
+                        fdisp(20, 0);
+                        fdisp((value / 100) % 10, 1);
+                        fdisp((value / 10) % 10 + 10, 2);
+                        fdisp((value / 1) % 10, 3);
                     }
 
                 }
@@ -652,9 +596,7 @@ void main(void)
 
     }
 }
-//---------------------------------- main.c???? ----------------------------------
 
-//---------------------------------- adc.c???? ----------------------------------
 void adc_init()
 {
     P1ASF = 0x08;
@@ -716,21 +658,19 @@ void delay(int delayTime)
         while (x--);
     }
 }
-//---------------------------------- adc.c???? ----------------------------------
 
-//---------------------------------- workMode1-outputWave.c???? ----------------------------------
 void waveInit()
 {
     unsigned int address = 0;
     unsigned int i = 0;
-    //sin
+    //Sin Wave
     i = 0;
     address = SIN_BASE_ADDRESS;
     for (; address <= 0x1CFF; address++, i++)
     {
         XBYTE[address] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
     }
-    //triangular
+    //Triangular Wave
     i = 0;
     address = TRI_BASE_ADDRESS;
     for (; address <= 0x1D7F; address++, i++)
@@ -743,7 +683,7 @@ void waveInit()
     {
         XBYTE[address] = 79 - floor(30 * (i / 128.0));
     }
-    //square
+    //Square Wave
     address = SQU_BASE_ADDRESS;
     for (; address <= 0x1E7F; address++)
     {
@@ -754,17 +694,15 @@ void waveInit()
     {
         XBYTE[address] = 64 - 15;
     }
-    //teeth
+    //Sawtooth Wave
     i = 0;
-    address = TEE_BASE_ADDRESS;
+    address = STW_BASE_ADDRESS;
     for (; address <= 0x1FFF; address++, i++)
     {
         XBYTE[address] = 64 - 15 + floor(30 * i / 256);
     }
 }
-//---------------------------------- workMode1-outputWave.c???? ----------------------------------
 
-//---------------------------------- key.c???? ----------------------------------
 void key_service()
 {
     if (key_sta & 0x01) return;
@@ -815,126 +753,60 @@ void keyWork()
                 mode1Status = mode1Status + 1;
             }
         }
-//        if (workMode == 1)
-//        {
-//            if (isChange == 0)
-//            {
-//                isChange = 1;
-//            }
-//            else
-//            {
-//                isChange = 0;
-//                freBuffer = 0;
-//                ampBuffer = 1;
-//            }
-//        }
         delay(100);
         break;
     case 5:
         if (workMode == 1)
         {
             if (mode1Status == 2)
-                waveMode = 1;
-            else if (mode1Status == 3 && ampBuffer <= 4)
-                ampBuffer = ampBuffer + 1;
-            else if (mode1Status == 4 && freBuffer <= 990)
-                freBuffer = freBuffer + 10;
+                outputWaveMode = 1;
+            else if (mode1Status == 3 && outputAmp <= 4)
+                outputAmp = outputAmp + 1;
+            else if (mode1Status == 4 && outputFreq <= 990)
+                outputFreq = outputFreq + 10;
         }
-//        if (workMode == 1)
-//        {
-//            if (!isChange)
-//            {
-//                waveMode = 1;
-//            }
-//            else
-//            {
-//                if (freBuffer >= 1)
-//                {
-//                    freBuffer = freBuffer - 1;
-//                }
-//            }
-//        }
         delay(100);
         break;
     case 6:
         if (workMode == 1)
         {
             if (mode1Status == 2)
-                waveMode = 2;
-            else if (mode1Status == 3 && ampBuffer >= 2)
-                ampBuffer = ampBuffer - 1;
-            else if (mode1Status == 4 && freBuffer >= 20)
-                freBuffer = freBuffer - 10;
+                outputWaveMode = 2;
+            else if (mode1Status == 3 && outputAmp >= 2)
+                outputAmp = outputAmp - 1;
+            else if (mode1Status == 4 && outputFreq >= 20)
+                outputFreq = outputFreq - 10;
         }
-//        if (workMode == 1)
-//        {
-//            if (!isChange)
-//            {
-//                waveMode = 2;
-//            }
-//            else
-//            {
-//                freBuffer = freBuffer + 1;
-//            }
-//        }
         delay(100);
         break;
     case 7:
         if (workMode == 1)
         {
             if (mode1Status == 2)
-                waveMode = 3;
-            else if (mode1Status == 3 && ampBuffer <= 4.9)
-                ampBuffer = ampBuffer + 0.1;
-            else if (mode1Status == 4 && freBuffer <= 999.8)
-                freBuffer = freBuffer + 1;
+                outputWaveMode = 3;
+            else if (mode1Status == 3 && outputAmp <= 4.9)
+                outputAmp = outputAmp + 0.1;
+            else if (mode1Status == 4 && outputFreq <= 999.8)
+                outputFreq = outputFreq + 1;
         }
-//        if (workMode == 1)
-//        {
-//            if (!isChange)
-//            {
-//                waveMode = 3;
-//            }
-//            else
-//            {
-//                if (ampBuffer >= 2)
-//                {
-//                    ampBuffer = ampBuffer - 1;
-//                }
-//            }
-//        }
         delay(100);
         break;
     case 8:
         if (workMode == 1)
         {
             if (mode1Status == 2)
-                waveMode = 4;
-            else if (mode1Status == 3 && ampBuffer >= 0.2)
-                ampBuffer = ampBuffer - 0.1;
-            else if (mode1Status == 4 && freBuffer >= 2)
-                freBuffer = freBuffer - 1;
+                outputWaveMode = 4;
+            else if (mode1Status == 3 && outputAmp >= 0.2)
+                outputAmp = outputAmp - 0.1;
+            else if (mode1Status == 4 && outputFreq >= 2)
+                outputFreq = outputFreq - 1;
         }
-//        if (workMode == 1)
-//        {
-//            if (!isChange)
-//            {
-//                waveMode = 4;
-//            }
-//            else
-//            {
-//                ampBuffer = ampBuffer + 1;
-//            }
-//        }
         delay(100);
         break;
     default:
         break;
     }
 }
-//---------------------------------- key.c???? ----------------------------------
-
-//---------------------------------- featureExtract.c???? ----------------------------------
 void ampMeasure()
 {
     amp = ADC_RESULT;
@@ -948,7 +820,7 @@ void ampMeasure()
     }
     if (adAddress > 0x0800)
     {
-        vpp = (amp_up * 5.0 / 1.1 - amp_low * 5.0 / 1.1) / 128;
+        inputAmp = (amp_up * 5.0 / 1.1 - amp_low * 5.0 / 1.1) / 128;
         amp_up = amp_low = 128;
     }
 }
@@ -968,7 +840,7 @@ void freMeasure()
     }
     if (adAddress > 0x0800)
     {
-        freq = floor(2000 / (fre * 1.0 / fre_count));
+        inputFreq = floor(2000 / (fre * 1.0 / fre_count));
         fre = 0;
         fre_up = fre_low = 0;
         fre_count = 0;
@@ -976,4 +848,3 @@ void freMeasure()
     }
     ampl = amp;
 }
-//---------------------------------- featureExtract.c???? ----------------------------------
