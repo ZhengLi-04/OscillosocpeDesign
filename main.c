@@ -331,58 +331,58 @@ void updateWaveBuffer()
                 {
                     WAVE_VALUE = XBYTE[sinAddress];
                 }
-                sinAddress = sinAddress + 1 + freBuffer;
+                sinAddress = sinAddress + 1 + freBuffer / 1.6;
             }
             else
             {
                 sinAddress = SIN_BASE_ADDRESS;
                 WAVE_VALUE = (XBYTE[sinAddress] - 32) * ampBuffer + 32;
-                sinAddress = sinAddress + 1 + freBuffer;
+                sinAddress = sinAddress + 1 + freBuffer / 1.6;
             }
         }
         break;
         case 2:
         {
-            if (triAddress + freBuffer <= 0x1DF3)
+            if (triAddress <= 0x1DF3)
             {
-                WAVE_VALUE = XBYTE[triAddress] * ampBuffer;
-                triAddress = triAddress + 1 + freBuffer;
+                WAVE_VALUE = (XBYTE[triAddress] - 64) * ampBuffer + 64;
+                triAddress = triAddress + 1 + freBuffer / 1.6;
             }
             else
             {
                 triAddress = TRI_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[triAddress] * ampBuffer;
-                triAddress = triAddress + 1 + freBuffer;
+                WAVE_VALUE = (XBYTE[triAddress] - 64) * ampBuffer + 64;
+                triAddress = triAddress + 1 + freBuffer / 1.6;
             }
         }
         break;
         case 3:
         {
-            if (squAddress + freBuffer <= 0x1EF3)
+            if (squAddress <= 0x1EFF)
             {
-                WAVE_VALUE = XBYTE[squAddress] * ampBuffer;
-                squAddress = squAddress + 1 + freBuffer;
+                WAVE_VALUE = (XBYTE[squAddress] - 64) * ampBuffer + 64;
+                squAddress = squAddress + 1 + freBuffer / 1.6;
             }
             else
             {
                 squAddress = SQU_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[squAddress] * ampBuffer;
-                squAddress = squAddress + 1 + freBuffer;
+                WAVE_VALUE = (XBYTE[squAddress] - 64) * ampBuffer + 64;
+                squAddress = squAddress + 1 + freBuffer / 1.6;
             }
         }
         break;
         case 4:
         {
-            if (teeAddress + freBuffer <= 0x1F79)
+            if (teeAddress <= 0x1FFF)
             {
-                WAVE_VALUE = XBYTE[teeAddress] * ampBuffer;
-                teeAddress = teeAddress + 1 + freBuffer ;
+                WAVE_VALUE = (XBYTE[teeAddress] - 32) * ampBuffer + 32;
+                teeAddress = teeAddress + 1 + freBuffer / 1.6 ;
             }
             else
             {
                 teeAddress = TEE_BASE_ADDRESS;
-                WAVE_VALUE = XBYTE[teeAddress] * ampBuffer;
-                teeAddress = teeAddress + 1 + freBuffer ;
+                WAVE_VALUE = (XBYTE[teeAddress] - 32) * ampBuffer + 32;
+                teeAddress = teeAddress + 1 + freBuffer / 1.6 ;
             }
         }
         break;
@@ -733,33 +733,33 @@ void waveInit()
     //triangular
     i = 0;
     address = TRI_BASE_ADDRESS;
-    for (; address <= 0x1D79; address++, i++)
+    for (; address <= 0x1D7F; address++, i++)
     {
-        XBYTE[address] = 20 + i;
+        XBYTE[address] = 49 + floor(30 * (i / 128.0));
     }
     i = 0;
-    address = 0x1D7A;
-    for (; address <= 0x1DF3; address++, i++)
+    address = 0x1D80;
+    for (; address <= 0x1DFF; address++, i++)
     {
-        XBYTE[address] = 141 - i;
+        XBYTE[address] = 79 - floor(30 * (i / 128.0));
     }
     //square
     address = SQU_BASE_ADDRESS;
-    for (; address <= 0x1E79; address++)
+    for (; address <= 0x1E7F; address++)
     {
-        XBYTE[address] = 150;
+        XBYTE[address] = 64 + 15;
     }
-    address = 0x1E7A;
-    for (; address <= 0x1EF3; address++)
+    address = 0x1E80;
+    for (; address <= 0x1EFF; address++)
     {
-        XBYTE[address] = 30;
+        XBYTE[address] = 64 - 15;
     }
     //teeth
     i = 0;
     address = TEE_BASE_ADDRESS;
-    for (; address <= 0x1F79; address++, i++)
+    for (; address <= 0x1F7F; address++, i++)
     {
-        XBYTE[address] = i + 20;
+        XBYTE[address] = 32 + (i % 28) -14;
     }
 }
 //---------------------------------- workMode1-outputWave.c???? ----------------------------------
