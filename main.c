@@ -375,13 +375,13 @@ void updateWaveBuffer()
         {
             if (teeAddress <= 0x1FFF)
             {
-                WAVE_VALUE = (XBYTE[teeAddress] - 32) * ampBuffer + 32;
+                WAVE_VALUE = (XBYTE[teeAddress] - 64) * ampBuffer + 64;
                 teeAddress = teeAddress + 1 + freBuffer / 1.6 ;
             }
             else
             {
                 teeAddress = TEE_BASE_ADDRESS;
-                WAVE_VALUE = (XBYTE[teeAddress] - 32) * ampBuffer + 32;
+                WAVE_VALUE = (XBYTE[teeAddress] - 64) * ampBuffer + 64;
                 teeAddress = teeAddress + 1 + freBuffer / 1.6 ;
             }
         }
@@ -757,9 +757,9 @@ void waveInit()
     //teeth
     i = 0;
     address = TEE_BASE_ADDRESS;
-    for (; address <= 0x1F7F; address++, i++)
+    for (; address <= 0x1FFF; address++, i++)
     {
-        XBYTE[address] = 32 + (i % 28) -14;
+        XBYTE[address] = 64 - 15 + floor(30 * i / 256);
     }
 }
 //---------------------------------- workMode1-outputWave.c???? ----------------------------------
