@@ -1,6 +1,6 @@
 #include <reg51.h>
-#include<absacc.h>
-#include<math.h>
+#include <absacc.h>
+#include <math.h>
 
 #define ADC_BASE_ADDR 0x0000
 #define DAC_CH2 0x2000
@@ -61,24 +61,29 @@ int                  fre_low = 0;
 float                fre_count = 0;
 unsigned char initStatus = 1; //1代表为初始化状态，不更新数码管内容。
 
+// 初始化
+void init_all();
 void init_timer0();
 void init_interrupts();
-void updateWaveBuffer();
-void dsptask();
-//void timer_isr() interrupt 1;
-//void updateFeature() interrupt 3;
-void fdisp(unsigned char n, unsigned char m);
-void main(void);
 void init_adc();
 void adc_start();
-//void adc_work() interrupt 5;
-void delay(int delayTime);
-void init_outputWave();
-void key_service();
+// 按键函数
+void keyService();
 void keyWork();
+// 显示函数
+void dspTask();
+void dspNum(unsigned char n, unsigned char m);
+// 模式1信号发生函数
+void init_outputWave();
+void updateOutputWave();
+// 模式3波形测量函数
 void ampMeasure();
 void freMeasure();
+// 主函数、其他函数
+void delay(int delayTime);
+void main(void);
 
+/*-----------初始化函数-----------*/
 void init_timer0()
 {
     TMOD &= 0XF0;
@@ -108,7 +113,251 @@ void init_interrupts()
     PADC = 0;
 }
 
-void dsptask()
+void init_adc()
+{
+    P1ASF = 0x08;
+    ADC_CONTR = ADC_INIT;
+    delay(2);
+}
+
+void init_all()
+{
+    CLK_DIV = CLK_DIV | 0x01;
+    init_timer0();
+    init_timer1();
+    init_interrupts();
+    init_adc();
+    init_outputWave();
+}
+
+
+/*----------中断相关函数-----------*/
+void timer_isr() interrupt 1
+{
+    EA = 0;
+    adcount++;
+    adc_start();
+    if (adcount == 3)
+    {
+        updateOutputWave();
+    }
+    if (adcount == 5)
+    {
+        dspTask();
+        keyService();
+        adcount = 0;
+    }
+    EA = 1;
+}
+
+void updateFeature() interrupt 3
+{
+    EA = 0;
+    clocktime++;
+    if (workMode == 3)
+    {
+        ampMeasure();
+        freMeasure();
+    }
+    if (workMode == 1)
+    {
+        daAddr = adAddr;
+        if (adAddr > 0x1Bf0)
+        {
+            adAddr = ADC_BASE_ADDR;
+        }
+        XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+        ad_temp = ADC_RESULT;
+        adAddr++;
+    }
+    if (workMode == 2)
+    {
+        if (daAddr > 0x1Bf0)
+        {
+            daAddr = ADC_BASE_ADDR;
+        }
+        OUTPUT_VALUE = XBYTE[daAddr] / 2;
+        daAddr++;
+    }
+    if (workMode == 3)
+    {
+        daAddr = adAddr;
+        if (adAddr > 0x0800)
+        {
+            adAddr = ADC_BASE_ADDR;
+        }
+        XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+        ad_temp = ADC_RESULT;
+        adAddr++;
+    }
+    if (clocktime == 4000)
+    {
+        clocktime = 0;
+    }
+    EA = 1;
+}
+
+void adc_work() interrupt 5
+{
+    ADC_CONTR = ADC_INIT;
+    ADC_RESULT = ADC_RES / 2 + 64;
+}
+
+void adc_start()
+{
+    ADC_CONTR = ADC_START;
+    switch (workMode)
+    {
+    case 1:
+    {
+        XBYTE[DAC_CH1] = DAC_VALUE;
+        XBYTE[DAC_CH2] = outputWaveValue;
+    }
+    break;
+    case 2:
+    {
+        XBYTE[DAC_CH1] = DAC_VALUE;
+        XBYTE[DAC_CH2] = OUTPUT_VALUE;
+    }
+    break;
+    case 3:
+    {
+        XBYTE[DAC_CH1] = DAC_VALUE;
+        XBYTE[DAC_CH2] = 0x00;
+    }
+    break;
+    default:
+        break;
+    }
+}
+
+
+/*----------按键相关函数-----------*/
+// 按键扫描
+void keyService()
+{
+    if (key_sta & 0x01) return;
+    if (KEY2)
+    {
+        key_num = key_num + 1;
+        key_sta = key_sta | 0x01;
+    }
+    else if (KEY1)
+    {
+        key_num = key_num + 5;
+        key_sta = key_sta | 0x01;
+    }
+}
+// 根据不同按下的键执行不同动作
+void keyWork()
+{
+    unsigned int i, j;
+    switch (key_num)
+    {
+    case 1:
+    case 2:
+    case 3:
+        workMode = key_num;
+        initStatus = 1;
+        for (i = 0; i < 1000; i++)
+        {
+            for (j = 0; j < 15; j++)
+            {
+                dspNum(22, 0);
+                dspNum(workMode, 1);
+                dspNum(22, 2);
+                dspNum(22, 3);
+            }
+        }
+        if (workMode == 1) mode1Status = 1;
+        initStatus = 0;
+        break;
+    case 4:
+        if (workMode == 1)
+        {
+            if (mode1Status == 4)
+            {
+                mode1Status = 1;
+            }
+            else
+            {
+                mode1Status = mode1Status + 1;
+            }
+        }
+        delay(100);
+        break;
+    case 5:
+        if (workMode == 1)
+        {
+            if (mode1Status == 2)
+                outputWaveMode = 1;
+            else if (mode1Status == 3 && outputAmp <= 4)
+                outputAmp = outputAmp + 1;
+            else if (mode1Status == 4 && outputFreq <= 990)
+                outputFreq = outputFreq + 10;
+        }
+        delay(100);
+        break;
+    case 6:
+        if (workMode == 1)
+        {
+            if (mode1Status == 2)
+                outputWaveMode = 2;
+            else if (mode1Status == 3 && outputAmp >= 2)
+                outputAmp = outputAmp - 1;
+            else if (mode1Status == 4 && outputFreq >= 20)
+                outputFreq = outputFreq - 10;
+        }
+        delay(100);
+        break;
+    case 7:
+        if (workMode == 1)
+        {
+            if (mode1Status == 2)
+                outputWaveMode = 3;
+            else if (mode1Status == 3 && outputAmp <= 4.9)
+                outputAmp = outputAmp + 0.1;
+            else if (mode1Status == 4 && outputFreq <= 999.8)
+                outputFreq = outputFreq + 1;
+        }
+        delay(100);
+        break;
+    case 8:
+        if (workMode == 1)
+        {
+            if (mode1Status == 2)
+                outputWaveMode = 4;
+            else if (mode1Status == 3 && outputAmp >= 0.2)
+                outputAmp = outputAmp - 0.1;
+            else if (mode1Status == 4 && outputFreq >= 2)
+                outputFreq = outputFreq - 1;
+        }
+        delay(100);
+        break;
+    default:
+        break;
+    }
+}
+
+/*----------显示相关函数-----------*/
+code unsigned char segCode[] =
+{
+    /* 0-9 */  0x11, 0x7d, 0x23, 0x29, 0x4d, 0x89, 0x81, 0x3d, 0x01, 0x09,
+    /* 0-9. */ 0x10, 0x7c, 0x22, 0x28, 0x4c, 0x88, 0x80, 0x3c, 0x00, 0x08,
+    /* U */    0x51,
+    /* F */    0x87,
+    /* - */    0xef,
+    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
+};
+
+//根据段码表显示不同值
+void dspNum(unsigned char n, unsigned char m)
+{
+    dspbuf[m] = (n < sizeof(segCode)) ? segCode[n] : 0x11;
+}
+
+// 数码管及led更新
+void dspTask()
 {
     unsigned char i;
     unsigned char a, b;
@@ -181,74 +430,54 @@ void dsptask()
     D_RCLK = 0;
 }
 
-void timer_isr() interrupt 1
+/*----------模式1函数-----------*/
+// 初始化标准波形
+void init_outputWave()
 {
-    EA = 0;
-    adcount++;
-    adc_start();
-    if (adcount == 3)
+    unsigned int addr = 0;
+    unsigned int i = 0;
+    //Sin Wave
+    i = 0;
+    addr = SIN_BASE_ADDR;
+    for (; addr <= 0x1CFF; addr++, i++)
     {
-        updateWaveBuffer();
+        XBYTE[addr] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
     }
-    if (adcount == 5)
+    //Triangular Wave
+    i = 0;
+    addr = TRI_BASE_ADDR;
+    for (; addr <= 0x1D7F; addr++, i++)
     {
-        dsptask();
-        key_service();
-        adcount = 0;
+        XBYTE[addr] = 49 + floor(30 * (i / 128.0));
     }
-    EA = 1;
+    i = 0;
+    addr = 0x1D80;
+    for (; addr <= 0x1DFF; addr++, i++)
+    {
+        XBYTE[addr] = 79 - floor(30 * (i / 128.0));
+    }
+    //Square Wave
+    addr = SQU_BASE_ADDR;
+    for (; addr <= 0x1E7F; addr++)
+    {
+        XBYTE[addr] = 64 + 15;
+    }
+    addr = 0x1E80;
+    for (; addr <= 0x1EFF; addr++)
+    {
+        XBYTE[addr] = 64 - 15;
+    }
+    //Sawtooth Wave
+    i = 0;
+    addr = STW_BASE_ADDR;
+    for (; addr <= 0x1FFF; addr++, i++)
+    {
+        XBYTE[addr] = 64 - 15 + floor(30 * i / 256);
+    }
 }
 
-void updateFeature() interrupt 3
-{
-    EA = 0;
-    clocktime++;
-    if (workMode == 3)
-    {
-        ampMeasure();
-        freMeasure();
-    }
-    if (workMode == 1)
-    {
-        daAddr = adAddr;
-        if (adAddr > 0x1Bf0)
-        {
-            adAddr = ADC_BASE_ADDR;
-        }
-        XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
-        ad_temp = ADC_RESULT;
-        adAddr++;
-    }
-    if (workMode == 2)
-    {
-        if (daAddr > 0x1Bf0)
-        {
-            daAddr = ADC_BASE_ADDR;
-        }
-        OUTPUT_VALUE = XBYTE[daAddr] / 2;
-        daAddr++;
-    }
-    if (workMode == 3)
-    {
-        daAddr = adAddr;
-        if (adAddr > 0x0800)
-        {
-            adAddr = ADC_BASE_ADDR;
-        }
-        XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
-        ad_temp = ADC_RESULT;
-        adAddr++;
-    }
-
-    if (clocktime == 4000)
-    {
-
-        clocktime = 0;
-    }
-    EA = 1;
-}
-
-void updateWaveBuffer()
+// 根据设定值更新波形
+void updateOutputWave()
 {
     if (workMode == 1)
     {
@@ -326,383 +555,8 @@ void updateWaveBuffer()
         }
     }
 }
-
-code unsigned char segCode[] =
-{
-    /* 0-9 */  0x11, 0x7d, 0x23, 0x29, 0x4d, 0x89, 0x81, 0x3d, 0x01, 0x09,
-    /* 0-9. */ 0x10, 0x7c, 0x22, 0x28, 0x4c, 0x88, 0x80, 0x3c, 0x00, 0x08,
-    /* U */    0x51,
-    /* F */    0x87,
-    /* - */    0xef,
-    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
-};
-
-void fdisp(unsigned char n, unsigned char m)
-{
-    dspbuf[m] = (n < sizeof(segCode)) ? segCode[n] : 0x11;
-}
-
-void main(void)
-{
-
-    CLK_DIV = CLK_DIV | 0x01;
-    init_timer0();
-    init_timer1();
-    init_interrupts();
-    init_adc();
-    init_outputWave();
-    for (;;)
-    {
-        switch (workMode)
-        {
-        case 0:
-        {
-            initStatus = 1;
-            fdisp(22, 0);
-            fdisp(22, 1);
-            fdisp(22, 2);
-            fdisp(22, 3);
-        }
-        break;
-        case 1:
-        {
-            DAC_VALUE = ADC_RESULT;
-            if (initStatus == 0)
-            {
-                if (mode1Status == 1)
-                {
-                    if (clocktime < 2000)
-                    {
-                        fdisp(21, 0);
-                        if (outputFreq > 999) outputFreq = 999;
-                        if (outputFreq <= 0) outputFreq = 0;
-                        fdisp((outputFreq / 100) % 10, 1);
-                        fdisp((outputFreq / 10) % 10, 2);
-                        fdisp(outputFreq % 10, 3);
-                    }
-                    else
-                    {
-                        valueBuffer = (int)(outputAmp * 10);
-
-                        fdisp(20, 0);
-                        fdisp((valueBuffer / 100) % 10, 1);
-                        fdisp((valueBuffer / 10) % 10 + 10, 2);
-                        fdisp((valueBuffer / 1) % 10, 3);
-                    }
-                }
-                else if (mode1Status == 2)
-                {
-                    if (outputWaveMode == 1)
-                    {
-                        fdisp(22, 0);
-                        fdisp(5, 1);
-                        fdisp(1, 2);
-                        fdisp(23, 3);
-                    }
-                    else if (outputWaveMode == 2)
-                    {
-                        fdisp(22, 0);
-                        fdisp(24, 1);
-                        fdisp(25, 2);
-                        fdisp(1, 3);
-                    }
-                    else if (outputWaveMode == 3)
-                    {
-                        fdisp(22, 0);
-                        fdisp(5, 1);
-                        fdisp(26, 2);
-                        fdisp(20, 3);
-                    }
-                    else if (outputWaveMode == 4)
-                    {
-                        fdisp(22, 0);
-                        fdisp(5, 1);
-                        fdisp(24, 2);
-                        fdisp(22, 3);
-                    }
-                }
-                else if (mode1Status == 3)
-                {
-                    valueBuffer = (int)(outputAmp * 10);
-
-                    fdisp(20, 0);
-                    fdisp((valueBuffer / 100) % 10, 1);
-                    fdisp((valueBuffer / 10) % 10 + 10, 2);
-                    fdisp((valueBuffer / 1) % 10, 3);
-
-                }
-                else if (mode1Status == 4)
-                {
-                    fdisp(21, 0);
-                    if (outputFreq > 999) outputFreq = 999;
-                    if (outputFreq <= 0) outputFreq = 0;
-                    fdisp((outputFreq / 100) % 10, 1);
-                    fdisp((outputFreq / 10) % 10, 2);
-                    fdisp(outputFreq % 10, 3);
-                }
-            }
-        }
-        break;
-        case 2:
-        {
-            DAC_VALUE = ADC_RESULT;
-        }
-        break;
-        case 3:
-        {
-            DAC_VALUE = ADC_RESULT;
-            if (initStatus == 0)
-            {
-                if (clocktime < 2000)
-                {
-                    updateAmpFlag = 1;
-                    if (updateFreFlag == 1)
-                    {
-                        updateFreFlag = 0;
-                        fdisp(21, 0);
-                        if (inputFreq > 999)inputFreq = 999;
-                        if (inputFreq <= 0)inputFreq = 0;
-                        fdisp((inputFreq / 100) % 10, 1);
-                        fdisp((inputFreq / 10) % 10, 2);
-                        fdisp(inputFreq % 10, 3);
-                    }
-
-                }
-                else
-                {
-                    updateFreFlag = 1;
-                    if (updateAmpFlag == 1)
-                    {
-                        updateAmpFlag = 0;
-                        value = (int)(inputAmp * 10);
-                        fdisp(20, 0);
-                        fdisp((value / 100) % 10, 1);
-                        fdisp((value / 10) % 10 + 10, 2);
-                        fdisp((value / 1) % 10, 3);
-                    }
-
-                }
-            }
-        }
-        break;
-        default:
-            break;
-        }
-        if (key_sta & 0x01)
-        {
-            keyWork();
-            key_sta = key_sta & 0xfe;
-        }
-
-    }
-}
-
-void init_adc()
-{
-    P1ASF = 0x08;
-    ADC_CONTR = ADC_INIT;
-    delay(2);
-}
-
-void adc_start()
-{
-    ADC_CONTR = ADC_START;
-    switch (workMode)
-    {
-    case 1:
-    {
-
-        XBYTE[DAC_CH1] = DAC_VALUE;
-
-        XBYTE[DAC_CH2] = outputWaveValue;
-    }
-    break;
-    case 2:
-    {
-
-        XBYTE[DAC_CH1] = DAC_VALUE;
-
-        XBYTE[DAC_CH2] = OUTPUT_VALUE;
-    }
-    break;
-    case 3:
-    {
-
-        XBYTE[DAC_CH1] = DAC_VALUE;
-
-        XBYTE[DAC_CH2] = 0x00;
-    }
-    break;
-    default:
-        break;
-    }
-}
-
-
-void adc_work() interrupt 5
-{
-    ADC_CONTR = ADC_INIT;
-    ADC_RESULT = ADC_RES / 2 + 64;
-}
-
-void delay(int delayTime)
-{
-    unsigned int x;
-    while (delayTime--)
-    {
-        x = 1000;
-        while (x--);
-    }
-}
-
-void init_outputWave()
-{
-    unsigned int addr = 0;
-    unsigned int i = 0;
-    //Sin Wave
-    i = 0;
-    addr = SIN_BASE_ADDR;
-    for (; addr <= 0x1CFF; addr++, i++)
-    {
-        XBYTE[addr] = floor(14 * (sin(3.14 * i / 128) +1)) + 32; //14是根据硬件调整的经验值
-    }
-    //Triangular Wave
-    i = 0;
-    addr = TRI_BASE_ADDR;
-    for (; addr <= 0x1D7F; addr++, i++)
-    {
-        XBYTE[addr] = 49 + floor(30 * (i / 128.0));
-    }
-    i = 0;
-    addr = 0x1D80;
-    for (; addr <= 0x1DFF; addr++, i++)
-    {
-        XBYTE[addr] = 79 - floor(30 * (i / 128.0));
-    }
-    //Square Wave
-    addr = SQU_BASE_ADDR;
-    for (; addr <= 0x1E7F; addr++)
-    {
-        XBYTE[addr] = 64 + 15;
-    }
-    addr = 0x1E80;
-    for (; addr <= 0x1EFF; addr++)
-    {
-        XBYTE[addr] = 64 - 15;
-    }
-    //Sawtooth Wave
-    i = 0;
-    addr = STW_BASE_ADDR;
-    for (; addr <= 0x1FFF; addr++, i++)
-    {
-        XBYTE[addr] = 64 - 15 + floor(30 * i / 256);
-    }
-}
-
-void key_service()
-{
-    if (key_sta & 0x01) return;
-    if (KEY2)
-    {
-        key_num = key_num + 1;
-        key_sta = key_sta | 0x01;
-    }
-    else if (KEY1)
-    {
-        key_num = key_num + 5;
-        key_sta = key_sta | 0x01;
-    }
-}
-
-void keyWork()
-{
-    unsigned int i, j;
-    switch (key_num)
-    {
-    case 1:
-    case 2:
-    case 3:
-        workMode = key_num;
-        initStatus = 1;
-        for (i = 0; i < 1000; i++)
-        {
-            for (j = 0; j < 15; j++)
-            {
-                fdisp(22, 0);
-                fdisp(workMode, 1);
-                fdisp(22, 2);
-                fdisp(22, 3);
-            }
-        }
-        if (workMode == 1) mode1Status = 1;
-        initStatus = 0;
-        break;
-    case 4:
-        if (workMode == 1)
-        {
-            if (mode1Status == 4)
-            {
-                mode1Status = 1;
-            }
-            else
-            {
-                mode1Status = mode1Status + 1;
-            }
-        }
-        delay(100);
-        break;
-    case 5:
-        if (workMode == 1)
-        {
-            if (mode1Status == 2)
-                outputWaveMode = 1;
-            else if (mode1Status == 3 && outputAmp <= 4)
-                outputAmp = outputAmp + 1;
-            else if (mode1Status == 4 && outputFreq <= 990)
-                outputFreq = outputFreq + 10;
-        }
-        delay(100);
-        break;
-    case 6:
-        if (workMode == 1)
-        {
-            if (mode1Status == 2)
-                outputWaveMode = 2;
-            else if (mode1Status == 3 && outputAmp >= 2)
-                outputAmp = outputAmp - 1;
-            else if (mode1Status == 4 && outputFreq >= 20)
-                outputFreq = outputFreq - 10;
-        }
-        delay(100);
-        break;
-    case 7:
-        if (workMode == 1)
-        {
-            if (mode1Status == 2)
-                outputWaveMode = 3;
-            else if (mode1Status == 3 && outputAmp <= 4.9)
-                outputAmp = outputAmp + 0.1;
-            else if (mode1Status == 4 && outputFreq <= 999.8)
-                outputFreq = outputFreq + 1;
-        }
-        delay(100);
-        break;
-    case 8:
-        if (workMode == 1)
-        {
-            if (mode1Status == 2)
-                outputWaveMode = 4;
-            else if (mode1Status == 3 && outputAmp >= 0.2)
-                outputAmp = outputAmp - 0.1;
-            else if (mode1Status == 4 && outputFreq >= 2)
-                outputFreq = outputFreq - 1;
-        }
-        delay(100);
-        break;
-    default:
-        break;
-    }
-}
+/*----------模式3函数-----------*/
+// 幅值测量函数
 void ampMeasure()
 {
     amp = ADC_RESULT;
@@ -720,7 +574,7 @@ void ampMeasure()
         amp_up = amp_low = 128;
     }
 }
-
+//频率测量函数
 void freMeasure()
 {
     amp = ADC_RESULT;
@@ -744,3 +598,166 @@ void freMeasure()
     }
     amp_last = amp;
 }
+
+/*----------其他函数-----------*/
+// 延时模块
+void delay(int delayTime)
+{
+    unsigned int x;
+    while (delayTime--)
+    {
+        x = 1000;
+        while (x--);
+    }
+}
+
+/*----------主函数-----------*/
+void main(void)
+{
+    init_all();
+    for (;;)
+    {
+        switch (workMode)
+        {
+        case 0:
+        {
+            initStatus = 1;
+            dspNum(22, 0);
+            dspNum(22, 1);
+            dspNum(22, 2);
+            dspNum(22, 3);
+        }
+        break;
+        case 1:
+        {
+            DAC_VALUE = ADC_RESULT;
+            if (initStatus == 0)
+            {
+                if (mode1Status == 1)
+                {
+                    if (clocktime < 2000)
+                    {
+                        dspNum(21, 0);
+                        if (outputFreq > 999) outputFreq = 999;
+                        if (outputFreq <= 0) outputFreq = 0;
+                        dspNum((outputFreq / 100) % 10, 1);
+                        dspNum((outputFreq / 10) % 10, 2);
+                        dspNum(outputFreq % 10, 3);
+                    }
+                    else
+                    {
+                        valueBuffer = (int)(outputAmp * 10);
+
+                        dspNum(20, 0);
+                        dspNum((valueBuffer / 100) % 10, 1);
+                        dspNum((valueBuffer / 10) % 10 + 10, 2);
+                        dspNum((valueBuffer / 1) % 10, 3);
+                    }
+                }
+                else if (mode1Status == 2)
+                {
+                    if (outputWaveMode == 1)
+                    {
+                        dspNum(22, 0);
+                        dspNum(5, 1);
+                        dspNum(1, 2);
+                        dspNum(23, 3);
+                    }
+                    else if (outputWaveMode == 2)
+                    {
+                        dspNum(22, 0);
+                        dspNum(24, 1);
+                        dspNum(25, 2);
+                        dspNum(1, 3);
+                    }
+                    else if (outputWaveMode == 3)
+                    {
+                        dspNum(22, 0);
+                        dspNum(5, 1);
+                        dspNum(26, 2);
+                        dspNum(20, 3);
+                    }
+                    else if (outputWaveMode == 4)
+                    {
+                        dspNum(22, 0);
+                        dspNum(5, 1);
+                        dspNum(24, 2);
+                        dspNum(22, 3);
+                    }
+                }
+                else if (mode1Status == 3)
+                {
+                    valueBuffer = (int)(outputAmp * 10);
+
+                    dspNum(20, 0);
+                    dspNum((valueBuffer / 100) % 10, 1);
+                    dspNum((valueBuffer / 10) % 10 + 10, 2);
+                    dspNum((valueBuffer / 1) % 10, 3);
+
+                }
+                else if (mode1Status == 4)
+                {
+                    dspNum(21, 0);
+                    if (outputFreq > 999) outputFreq = 999;
+                    if (outputFreq <= 0) outputFreq = 0;
+                    dspNum((outputFreq / 100) % 10, 1);
+                    dspNum((outputFreq / 10) % 10, 2);
+                    dspNum(outputFreq % 10, 3);
+                }
+            }
+        }
+        break;
+        case 2:
+        {
+            DAC_VALUE = ADC_RESULT;
+        }
+        break;
+        case 3:
+        {
+            DAC_VALUE = ADC_RESULT;
+            if (initStatus == 0)
+            {
+                if (clocktime < 2000)
+                {
+                    updateAmpFlag = 1;
+                    if (updateFreFlag == 1)
+                    {
+                        updateFreFlag = 0;
+                        dspNum(21, 0);
+                        if (inputFreq > 999)inputFreq = 999;
+                        if (inputFreq <= 0)inputFreq = 0;
+                        dspNum((inputFreq / 100) % 10, 1);
+                        dspNum((inputFreq / 10) % 10, 2);
+                        dspNum(inputFreq % 10, 3);
+                    }
+
+                }
+                else
+                {
+                    updateFreFlag = 1;
+                    if (updateAmpFlag == 1)
+                    {
+                        updateAmpFlag = 0;
+                        value = (int)(inputAmp * 10);
+                        dspNum(20, 0);
+                        dspNum((value / 100) % 10, 1);
+                        dspNum((value / 10) % 10 + 10, 2);
+                        dspNum((value / 1) % 10, 3);
+                    }
+
+                }
+            }
+        }
+        break;
+        default:
+            break;
+        }
+        if (key_sta & 0x01)
+        {
+            keyWork();
+            key_sta = key_sta & 0xfe;
+        }
+
+    }
+}
+
