@@ -56,9 +56,9 @@ unsigned int   	triAddr = TRI_BASE_ADDR;
 unsigned int  	squAddr = SQU_BASE_ADDR;
 unsigned int 		stwAddr = STW_BASE_ADDR;
 // 系统及A/D
-unsigned int         clocktime = 0, adcount = 0;
-unsigned char        ADC_RESULT = 0;
-unsigned char        DAC_VALUE = 0;
+unsigned int    clocktime = 0, adcount = 0;
+unsigned char   ADC_RESULT = 0;
+unsigned char   DAC_VALUE = 0;
 // 模式1输出
 unsigned char		outputWaveMode = 1;	// 1:正弦 2:三角 3:方波 4:锯齿
 unsigned char   outputWaveValue = 0;// 输出值
@@ -66,6 +66,7 @@ unsigned char   outputFreq = 10;		// 设定输出频率
 float        		outputAmp = 1.0;		// 设定输出幅值
 // 模式2回放
 unsigned char   mode2OutputValue = 0;
+unsigned char 	mode2Counter = 0;
 // 模式3测量
 unsigned int    inputFreq = 0;			// 测定输入频率
 float           inputAmp = 0.0;			// 测定输入幅值
@@ -194,12 +195,17 @@ void updateFeature() interrupt 3
     }
     if (workMode == 2)
     {
-        if (daAddr > 0x1Bf0)
+        mode2Counter++;
+        if (mode2Counter >= 3)
         {
-            daAddr = ADC_BASE_ADDR;
+            mode2Counter = 0;
+            if (daAddr > 0x1Bf0)
+            {
+                daAddr = ADC_BASE_ADDR;
+            }
+            mode2OutputValue = XBYTE[daAddr] / 2;
+            daAddr++;
         }
-        mode2OutputValue = XBYTE[daAddr] / 2;
-        daAddr++;
     }
     if (workMode == 3)
     {
