@@ -15,6 +15,8 @@
 #define SQU_BASE_ADDR 0x1E00
 #define STW_BASE_ADDR 0x1F00
 
+#define MIN_PEAK_THRESHOLD 140   // 脉搏峰检测阈值
+
 sbit D_SER     = P1 ^ 0;
 sbit D_SRCLK   = P1 ^ 1;
 sbit D_RCLK    = P1 ^ 2;
@@ -40,10 +42,11 @@ code unsigned char segCode[] =
     /* U */    0x51,
     /* F */    0x87,
     /* - */    0xef,
-    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d
+    /* ntrq */ 0x15, 0xc3, 0xe7, 0x0d,
+    /*P*/ 		 0x07
 }; // 显示码表
 // 模式控制
-unsigned char		workMode = 0;				// 0:初始 1:模式1 2:模式2 3:模式3
+unsigned char		workMode = 0;				// 0:初始 1:模式1 2:模式2 3:模式3 4:模式4
 unsigned char 	mode1Status = 0; 		// 0:初始 1:循环显示 2:改波形 3:改幅度 4:改频率
 unsigned char 	initStatus = 1; 		// 1:初始化状态，不得更新数码管内容
 unsigned char 	updateAmpFlag = 0;	// 0:不可更新幅度 1:可以更新幅度
@@ -81,7 +84,13 @@ int             fre = 0;
 int             fre_up = 0;
 int             fre_low = 0;
 float           fre_count = 0;
-unsigned int         ad_temp = 0;
+unsigned int    ad_temp = 0;
+
+// 脉搏峰值检测
+unsigned int 		peak_count = 0;			 // 峰值计数
+unsigned int 		peak_frequency = 0;	 // 峰值频率（min）
+unsigned int 		peak_timer = 0;			 // 峰值计时
+
 
 /*-----------函数声明-----------*/
 // 初始化
@@ -102,6 +111,8 @@ void updateOutputWave();
 // 模式3波形测量函数
 void ampMeasure();
 void freMeasure();
+// 模式4峰值检测
+void peakDetection();
 // 主函数、其他函数
 void delay(int delayTime);
 void main(void);
@@ -182,6 +193,11 @@ void updateFeature() interrupt 3
         ampMeasure();
         freMeasure();
     }
+    if (workMode == 4)
+    {
+        peakDetection();
+    }
+    // AD/DA
     if (workMode == 1)
     {
         daAddr = adAddr;
@@ -195,17 +211,17 @@ void updateFeature() interrupt 3
     }
     if (workMode == 2)
     {
-        mode2Counter++;
-        if (mode2Counter >= 3)
+        //mode2Counter++;
+        //if (mode2Counter >= 2)
+        //{
+        //mode2Counter = 0;
+        if (daAddr > 0x1Bf0)
         {
-            mode2Counter = 0;
-            if (daAddr > 0x1Bf0)
-            {
-                daAddr = ADC_BASE_ADDR;
-            }
-            mode2OutputValue = XBYTE[daAddr] / 2;
-            daAddr++;
+            daAddr = ADC_BASE_ADDR;
         }
+        mode2OutputValue = XBYTE[daAddr] / 2;
+        daAddr++;
+        //}
     }
     if (workMode == 3)
     {
@@ -217,6 +233,25 @@ void updateFeature() interrupt 3
         XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
         ad_temp = ADC_RESULT;
         adAddr++;
+    }
+    if (workMode == 4)
+    {
+        //unsigned char mode4input = 0;
+        //if (mode4input >= 3)
+        //{
+            daAddr = adAddr;
+            if (adAddr > 0x1Bf0)
+            {
+                adAddr = ADC_BASE_ADDR;
+            }
+            XBYTE[adAddr] = (ADC_RESULT - 64) * 2;
+            ad_temp = ADC_RESULT;
+            adAddr++;
+            //mode4input = 0;
+        //}
+        //mode4input++;
+
+
     }
     if (clocktime == 4000)
     {
@@ -249,6 +284,12 @@ void adc_start()
     }
     break;
     case 3:
+    {
+        XBYTE[DAC_CH1] = DAC_VALUE;
+        XBYTE[DAC_CH2] = 0x00;
+    }
+    break;
+    case 4:
     {
         XBYTE[DAC_CH1] = DAC_VALUE;
         XBYTE[DAC_CH2] = 0x00;
@@ -307,8 +348,27 @@ void keyWork()
                 mode1Status = 1;
             else
                 mode1Status = mode1Status + 1;
+            delay(100);
         }
-        delay(100);
+        else
+        {
+            workMode = 4;
+            initStatus = 1;
+            peak_count = 0;
+            peak_frequency = 0;
+            peak_timer = 0;
+            for (i = 0; i < 1000; i++)
+            {
+                for (j = 0; j < 15; j++)
+                {
+                    dspNum(22, 0);
+                    dspNum(workMode, 1);
+                    dspNum(22, 2);
+                    dspNum(22, 3);
+                }
+            }
+            initStatus = 0;
+        }
         break;
     case 5:
         if (workMode == 1)
@@ -419,6 +479,9 @@ void dspTask()
             break;
         case 3:
             a = 0xFD;
+            break;
+        case 4:
+            a = 0xFF;
             break;
         default:
             a = 0xFE;
@@ -573,6 +636,63 @@ void freMeasure()
     }
     amp_last = amp;
 }
+/*----------模式4峰值检测-----------*/
+void peakDetection()
+{
+    static unsigned char last_amp = 0;     // 上上次采样
+    static unsigned char current_amp = 0;  // 上次采样
+    static unsigned char rising = 0;            // 上升趋势标志
+
+    amp = ADC_RESULT;
+
+    // 检测上升趋势：当前值>上次值>上上次值
+    if (amp > current_amp && current_amp > last_amp)
+    {
+        rising = 1;
+    }
+    // 检测下降趋势并且之前处于上升状态 -> peak
+    else if (amp < current_amp && current_amp > last_amp && rising)
+    {
+        // peak>THRESHOLD才计入
+        if (current_amp >= MIN_PEAK_THRESHOLD)
+        {
+            peak_count++;
+        }
+        rising = 0;
+    }
+
+    // 更新历史采样值
+    last_amp = current_amp;
+    current_amp = amp;
+
+    peak_timer++;
+    if (peak_timer >= 10000) // 每2秒更新一次
+    {
+        peak_frequency = peak_count * 2.5; // 转换为每分钟的峰值个数
+        peak_count = 0;
+        peak_timer = 0;
+
+        // 显示峰值心率
+        //dspNum(21, 0); //
+        //if (peak_frequency > 999) peak_frequency = 999;
+        //if (peak_frequency <= 0) peak_frequency = 0;
+        //dspNum((peak_frequency / 100) % 10, 1);
+        //dspNum((peak_frequency / 10) % 10, 2);
+        //dspNum(peak_frequency % 10, 3);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*----------其他函数-----------*/
 // 延时模块
@@ -718,6 +838,17 @@ void main(void)
 
                 }
             }
+        }
+        break;
+        case 4:	// 峰值检测
+        {
+            DAC_VALUE = ADC_RESULT;
+            dspNum(27, 0);
+            if (peak_frequency > 999) peak_frequency = 999;
+            if (peak_frequency <= 0) peak_frequency = 0;
+            dspNum((peak_frequency / 100) % 10, 1);
+            dspNum((peak_frequency / 10) % 10, 2);
+            dspNum(peak_frequency % 10, 3);
         }
         break;
         default:
